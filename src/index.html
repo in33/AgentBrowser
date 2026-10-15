@@ -38,8 +38,8 @@
         <button class="nav-btn" data-view="agents" title="Agent 工作台">
           <span class="nav-ico">🤖</span><span class="nav-txt">Agent</span>
         </button>
-        <button class="nav-btn" data-view="monad" title="Monad 交易">
-          <span class="nav-ico">◈</span><span class="nav-txt">Monad</span>
+        <button class="nav-btn" data-view="ecloud" title="移动云增值服务">
+          <span class="nav-ico">☁️</span><span class="nav-txt">移动云</span>
         </button>
       </nav>
       <div class="topbar-right">
@@ -92,11 +92,11 @@
             <div class="desktop-welcome">
               <div class="hero-badge">🌐 下一代 浏览器 · AgentBrowser.com</div>
               <h1 class="hero-title">让 <span class="grad">Agent</span> 帮您找信息</h1>
-              <p class="hero-sub">多模型网关 · 智能浏览器 · Agent 工作台 · AI 助手 · Monad 交易 —— 一个浏览器，无限可能</p>
+              <p class="hero-sub">多模型网关 · 智能浏览器 · Agent 工作台 · AI 助手 · 移动云增值服务 —— 一个浏览器，无限可能</p>
               <div class="hero-actions">
                 <button class="btn btn-primary" data-goto="browser">开始浏览</button>
                 <button class="btn btn-ghost" data-goto="agents">创建 Agent</button>
-                <button class="btn btn-ghost" data-goto="monad">Monad 交易</button>
+                <button class="btn btn-ghost" data-goto="ecloud">移动云服务</button>
               </div>
             </div>
             <div class="desktop-stats" id="heroStats"></div>
@@ -229,53 +229,18 @@
         </div>
       </section>
 
-      <!-- Monad 交易 -->
-      <section class="view" id="view-monad">
-        <div class="monad-head">
+      <!-- 移动云增值服务 -->
+      <section class="view" id="view-ecloud">
+        <div class="ecloud-head">
           <div>
-            <h2>◈ Monad 交易</h2>
-            <p class="track-sub">Monad 高性能 L1 区块链 · 实时行情与交易模拟</p>
+            <h2>☁️ 移动云增值服务</h2>
+            <p class="track-sub">中国移动 ecloud.10086.cn · AI 大模型 · 多模态 · 语音 · 视频生成 · 向量检索</p>
           </div>
-          <button class="btn btn-ghost" id="btnRefreshPrice">⟳ 刷新价格</button>
+          <button class="btn btn-ghost" id="btnEcloudLink">🔗 访问移动云</button>
         </div>
-        <div class="monad-body">
-          <div class="monad-price-card">
-            <div class="monad-price-label">MON 当前价格</div>
-            <div class="monad-price-value" id="monadPrice">--</div>
-            <div class="monad-price-currency" id="monadPriceCurrency">USD</div>
-            <div class="monad-price-status" id="monadPriceStatus">点击刷新获取最新价格</div>
-          </div>
-          <div class="monad-trade-panel">
-            <h3>模拟交易</h3>
-            <div class="monad-trade-row">
-              <label>买入数量 (MON)</label>
-              <input type="number" id="monadBuyAmount" class="input" placeholder="0.00" step="0.01" min="0" />
-            </div>
-            <div class="monad-trade-row">
-              <label>预估花费</label>
-              <span class="monad-est" id="monadEstCost">$0.00</span>
-            </div>
-            <button class="btn btn-primary" id="btnMonadBuy">买入</button>
-            <div class="monad-trade-row">
-              <label>卖出数量 (MON)</label>
-              <input type="number" id="monadSellAmount" class="input" placeholder="0.00" step="0.01" min="0" />
-            </div>
-            <button class="btn btn-ghost" id="btnMonadSell">卖出</button>
-          </div>
-          <div class="monad-portfolio">
-            <h3>我的持仓</h3>
-            <div class="monad-holdings" id="monadHoldings">
-              <div class="monad-holding-row"><span>MON 余额</span><b id="monadBalance">0.00</b></div>
-              <div class="monad-holding-row"><span>USD 余额</span><b id="monadUsdBalance">$10,000.00</b></div>
-              <div class="monad-holding-row"><span>当前市值</span><b id="monadTotalValue">$10,000.00</b></div>
-            </div>
-          </div>
-          <div class="monad-history">
-            <h3>交易记录</h3>
-            <div class="monad-history-list" id="monadHistoryList">
-              <div class="monad-empty">暂无交易记录</div>
-            </div>
-          </div>
+        <div class="ecloud-stats-bar" id="ecloudStatsBar"></div>
+        <div class="ecloud-body" id="ecloudBody">
+          <div class="ecloud-empty">正在加载移动云服务数据…</div>
         </div>
       </section>
 

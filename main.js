@@ -414,30 +414,44 @@ ipcMain.handle('model:chat-stream', async (e, { provider, config, messages, opts
   }
 });
 
-// 模型列表（内置预设）
+// 模型列表（内置预设 — 全部来自移动云 ecloud.10086.cn 平台）
 ipcMain.handle('models:presets', () => {
   return [
-    // ===== Apistate 分组：可扩展的中转接口（OpenAI 兼容） =====
-    { id: 'apistate', name: 'Apistate', provider: 'openai', group: 'Apistate', baseUrl: 'https://apistate.com/v1', models: ['gpt-4o', 'gpt-4o-mini', 'claude-3-5-sonnet', 'deepseek-chat'] },
+    // ===== 移动云·智算（呼和浩特节点） — 文本对话类 =====
+    { id: 'ecloud-hh-text', name: '移动云·智算（文本对话·呼和浩特）', provider: 'openai', group: '移动云', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: [
+      'DeepSeek-V4-Flash-0731', 'GLM-5.3-Flash', 'GLM-5.3', 'GLM-5.2', 'GLM-5.1',
+      'DeepSeek-V3.2', 'DeepSeek-V3.1', 'DeepSeek-V3', 'DeepSeek-V3-0324', 'DeepSeek-R1', 'DeepSeek-R1-0528',
+      'Qwen3.7-Max', 'Qwen3.6-Plus', 'Qwen3.5-Plus', 'Qwen3-235B-A22B', 'Qwen3-32B', 'QwQ-32B',
+      'Kimi-K2.6', 'Kimi-K2.7-code', 'MiniMax-M3', 'minimax-m2.5',
+      'DeepSeek-R1-Distill-Qwen-32B', 'DeepSeek-R1-Distill-Qwen-14B', 'DeepSeek-R1-Distill-Llama-70B', 'DeepSeek-R1-Distill-Llama-8B',
+      'Qwen2.5-72B-Instruct', 'Qwen2.5-72B-Instruct-64K', 'Qwen2.5-32B-Instruct', 'Qwen2.5-14B-Instruct', 'Qwen2.5-7B-Instruct',
+      'DeepSeek-V2-Lite-Chat', 'JIUTIAN-75B-8K-Chat', 'qwen3.5-35b-a3b', 'Qwen3.5-397B-A17B', 'Qwen3.5-27B',
+    ] },
 
-    // ===== 默认分组：国际常用接口（使用默认 URL） =====
-    { id: 'codex', name: 'OpenAI Codex', provider: 'openai', group: '默认', baseUrl: 'https://api.openai.com/v1', models: ['gpt-5-codex', 'codex-mini-latest'] },
-    { id: 'claude', name: 'Anthropic Claude', provider: 'anthropic', group: '默认', baseUrl: 'https://api.anthropic.com/v1/messages', models: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'] },
-    { id: 'grok', name: 'xAI Grok', provider: 'openai', group: '默认', baseUrl: 'https://api.x.ai/v1', models: ['grok-2-latest', 'grok-beta'] },
-    { id: 'gemini', name: 'Google Gemini', provider: 'gemini', group: '默认', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'] },
-    { id: 'openai', name: 'OpenAI', provider: 'openai', group: '默认', baseUrl: 'https://api.openai.com/v1', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1-mini'] },
-    { id: 'deepseek', name: 'DeepSeek', provider: 'openai', group: '默认', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-chat', 'deepseek-reasoner'] },
-    { id: 'ollama', name: 'Ollama (本地)', provider: 'ollama', group: '默认', baseUrl: 'http://localhost:11434/v1', models: ['llama3.1', 'qwen2.5', 'mistral', 'gemma2'] },
-    { id: 'moonshot', name: 'Moonshot Kimi', provider: 'openai', group: '默认', baseUrl: 'https://api.moonshot.cn/v1', models: ['moonshot-v1-8k', 'moonshot-v1-32k'] },
-    { id: 'zhipu', name: '智谱 GLM', provider: 'openai', group: '默认', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: ['glm-4-plus', 'glm-4-flash'] },
-    { id: 'qwen', name: '通义千问', provider: 'openai', group: '默认', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen-max', 'qwen-plus', 'qwen-turbo'] },
+    // ===== 移动云·智算（呼和浩特节点） — 多模态视觉类 =====
+    { id: 'ecloud-hh-vision', name: '移动云·智算（多模态视觉·呼和浩特）', provider: 'openai', group: '移动云', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: [
+      'Qwen2.5-VL-72B-Instruct', 'Qwen2.5-VL-32B-Instruct', 'Qwen2.5-VL-7B-Instruct',
+    ] },
 
-    // ===== YDY 分组：移动云 MemS 免费接口（5 个独立接口，Key 保存在 SQLite 中） =====
-    { id: 'mems-deepseek', name: 'MemS deepseek-v4-flash', provider: 'openai', group: 'YDY', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: ['deepseek-v4-flash-0731'] },
-    { id: 'mems-qwen', name: 'MemS qwen3.5-397b', provider: 'openai', group: 'YDY', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: ['qwen3.5-397b-a17b'] },
-    { id: 'mems-minimax', name: 'MemS minimax-m2.5', provider: 'openai', group: 'YDY', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: ['minimax-m2.5'] },
-    { id: 'mems-glm', name: 'MemS glm-5.2', provider: 'openai', group: 'YDY', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: ['glm-5.2'] },
-    { id: 'mems-jiutian', name: 'MemS jiutian-35b', provider: 'openai', group: 'YDY', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: ['jiutian-35b-256k-chat'] },
+    // ===== 移动云·MOMA（郑州节点） — 向量与重排类 =====
+    { id: 'ecloud-zz-vec', name: '移动云·智算（向量与重排·郑州）', provider: 'openai', group: '移动云', baseUrl: 'https://zhenze-zhengzhou.cmecloud.cn/v1', models: [
+      'bge-m3', 'bge-reranker-v2-m3', 'bge-base-zh-v1.5',
+    ] },
+
+    // ===== 移动云·MOMA（合作模型） — 旗舰与多模态 =====
+    { id: 'ecloud-moma', name: '移动云·MOMA（合作旗舰模型）', provider: 'openai', group: '移动云', baseUrl: 'https://moma.cmecloud.cn/v1', models: [
+      'Qwen/Qwen3-Max', 'Qwen/Qwen3.7-Plus', 'Qwen/Qwen3-VL-Plus', 'Qwen/Qwen3-Omni-Flash',
+    ] },
+
+    // ===== 移动云·智算（语音服务） =====
+    { id: 'ecloud-speech', name: '移动云·智算（语音服务·ASR/TTS）', provider: 'openai', group: '移动云', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: [
+      'Qwen/Qwen3-ASR-Flash-Realtime', 'Qwen/Fun-ASR-Flash-8k-Realtime',
+    ] },
+
+    // ===== 移动云·智算（视频与图片生成） =====
+    { id: 'ecloud-gen', name: '移动云·智算（视频与图片生成）', provider: 'openai', group: '移动云', baseUrl: 'https://zhenze-huhehaote.cmecloud.cn/v1', models: [
+      'qwen/happyhorse-1.0-video-edit', 'qwen/happyhorse-1.1-i2v',
+    ] },
   ];
 });
 
@@ -642,19 +656,71 @@ ipcMain.handle('db:set', (_e, key, value) => {
   return true;
 });
 
-// ---------- Monad 价格获取 ----------
-ipcMain.handle('monad:price', async () => {
-  try {
-    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=monad&vs_currencies=usd', {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) throw new Error(`API ${res.status}`);
-    const data = await res.json();
-    const price = data?.monad?.usd;
-    if (price === undefined) throw new Error('未获取到价格');
-    return { ok: true, price, currency: 'usd' };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
+// ---------- 移动云增值服务数据 ----------
+ipcMain.handle('ecloud:services', () => {
+  return {
+    url: 'https://ecloud.10086.cn/mobilecloud',
+    categories: [
+      {
+        id: 'text', icon: '💬', name: 'AI 大模型 · 文本对话',
+        desc: 'DeepSeek、GLM、通义千问、Kimi、MiniMax 等主流大语言模型，支持多轮对话、代码生成、逻辑推理、工具调用',
+        models: [
+          { name: 'DeepSeek-V4-Flash-0731', family: 'DeepSeek', ctx: '128K', input: '0.5', output: '2', unit: '元/百万tokens', features: ['代码生成', '逻辑推理', '工具调用'] },
+          { name: 'GLM-5.3-Flash', family: 'GLM', ctx: '128K', input: '0.5', output: '2', unit: '元/百万tokens', features: ['多轮对话', 'Agent', '代码生成'] },
+          { name: 'GLM-5.3', family: 'GLM', ctx: '128K', input: '2', output: '8', unit: '元/百万tokens', features: ['复杂推理', 'Agent', '工具调用'] },
+          { name: 'GLM-5.2', family: 'GLM', ctx: '128K', input: '2', output: '8', unit: '元/百万tokens', features: ['长文本', '代码生成', '工具调用'] },
+          { name: 'DeepSeek-R1-0528', family: 'DeepSeek', ctx: '128K', input: '1', output: '4', unit: '元/百万tokens', features: ['深度推理', '数学', '代码'] },
+          { name: 'Qwen3.7-Max', family: '通义千问', ctx: '256K', input: '0.25', output: '10', unit: '元/百万tokens', features: ['思考模式', '工具调用', '万亿参数'] },
+          { name: 'Kimi-K2.6', family: 'Moonshot', ctx: '256K', input: '4', output: '12', unit: '元/百万tokens', features: ['长文本', '代码', 'Agent'] },
+          { name: 'MiniMax-M3', family: 'MiniMax', ctx: '1M', input: '1', output: '3', unit: '元/百万tokens', features: ['超长上下文', '多模态', 'Agent'] },
+        ],
+      },
+      {
+        id: 'vision', icon: '👁️', name: '多模态理解 · 视觉语言',
+        desc: '图像理解、视频理解、图文跨模态分析，支持图片/视频输入进行智能问答',
+        models: [
+          { name: 'Qwen2.5-VL-72B-Instruct', family: '通义千问', ctx: '32K', input: '8', output: '24', unit: '元/百万tokens', features: ['图像理解', '视频理解', 'OCR'] },
+          { name: 'Qwen2.5-VL-32B-Instruct', family: '通义千问', ctx: '32K', input: '8', output: '24', unit: '元/百万tokens', features: ['图像理解', '视频理解', '数学推理'] },
+          { name: 'Qwen/Qwen3-VL-Plus', family: '通义千问', ctx: '256K', input: '0.1', output: '10', unit: '元/百万tokens', features: ['视觉问答', '图表分析', '文档解析'] },
+          { name: 'Qwen/Qwen3-Omni-Flash', family: '通义千问', ctx: '64K', input: '1.8', output: '6.9', unit: '元/百万tokens', features: ['全模态', '音频理解', '视频理解'] },
+        ],
+      },
+      {
+        id: 'speech', icon: '🎙️', name: '语音服务 · ASR/TTS',
+        desc: '实时语音识别（ASR）、语音合成（TTS），支持中英日韩多语言流式识别',
+        models: [
+          { name: 'Qwen3-ASR-Flash-Realtime', family: '通义千问', ctx: '—', input: '0.00033', output: '—', unit: '元/秒', features: ['实时流式', '多语言', '会议记录'] },
+          { name: 'Fun-ASR-Flash-8K-Realtime', family: '通义千问', ctx: '—', input: '0.00022', output: '—', unit: '元/秒', features: ['电话语音', '8kHz优化', '客服质检'] },
+        ],
+      },
+      {
+        id: 'video', icon: '🎬', name: '视频生成 · 文生视频/图生视频',
+        desc: '自然语言指令生成视频、图片编辑视频，支持跨片段一致性与音画同步',
+        models: [
+          { name: 'HappyHorse-1.0-Video-Edit', family: '通义万相', ctx: '—', input: '—', output: '0.9', unit: '元/秒', features: ['视频编辑', '图生视频', '自然语言'] },
+          { name: 'HappyHorse-1.1-I2V', family: '通义万相', ctx: '—', input: '—', output: '0.45', unit: '元/秒', features: ['图生视频', '跨片段一致', '音画同步'] },
+        ],
+      },
+      {
+        id: 'vector', icon: '🔢', name: '向量检索 · Embedding/Rerank',
+        desc: '文本嵌入（Embedding）与重排序（Rerank），用于 RAG 检索增强生成、语义搜索',
+        models: [
+          { name: 'bge-m3', family: 'BGE', ctx: '8K', input: '0.5', output: '0.5', unit: '元/百万tokens', features: ['多语言', '稀疏+稠密', 'RAG'] },
+          { name: 'bge-reranker-v2-m3', family: 'BGE', ctx: '8K', input: '0.5', output: '0.5', unit: '元/百万tokens', features: ['重排序', '多语言', 'RAG增强'] },
+          { name: 'bge-base-zh-v1.5', family: 'BGE', ctx: '8K', input: '0.5', output: '0.5', unit: '元/百万tokens', features: ['中文嵌入', '语义搜索', '聚类'] },
+        ],
+      },
+      {
+        id: 'agent', icon: '🤖', name: 'Agent 智能体 · 工具调用',
+        desc: '支持 Function Calling、结构化输出、网页搜索的智能体模型，可自主规划与执行复杂任务',
+        models: [
+          { name: 'DeepSeek-V4-Flash-0731', family: 'DeepSeek', ctx: '128K', input: '0.5', output: '2', unit: '元/百万tokens', features: ['Agent', '工具调用', '代码执行'] },
+          { name: 'GLM-5.3', family: 'GLM', ctx: '128K', input: '2', output: '8', unit: '元/百万tokens', features: ['Agent', 'MCP', '工具调用'] },
+          { name: 'Qwen2.5-72B-Instruct', family: '通义千问', ctx: '64K', input: '4', output: '12', unit: '元/百万tokens', features: ['工具调用', '网页搜索', '结构化输出'] },
+          { name: 'Qwen/Qwen3-Max', family: '通义千问', ctx: '256K', input: '0.25', output: '10', unit: '元/百万tokens', features: ['思考模式', '工具调用', '万亿参数'] },
+        ],
+      },
+    ],
+    stats: { total: '358+', providers: '10+', families: '15+', domains: '6' },
+  };
 });

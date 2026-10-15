@@ -49,6 +49,6 @@ contextBridge.exposeInMainWorld('agentBrowser', {
   dbGet: (key) => ipcRenderer.invoke('db:get', key),
   dbSet: (key, value) => ipcRenderer.invoke('db:set', key, value),
 
-  // Monad 价格
-  monadPrice: () => ipcRenderer.invoke('monad:price'),
+  // 移动云增值服务
+  ecloudServices: () => ipcRenderer.invoke('ecloud:services'),
 });

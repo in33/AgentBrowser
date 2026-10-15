@@ -1,6 +1,6 @@
 /**
  * AgentBrowser - 渲染进程主逻辑
- * 负责：视图切换、智能浏览器、Agent 工作台、AI 助手、Monad 交易、设置
+ * 负责：视图切换、智能浏览器、Agent 工作台、AI 助手、移动云增值服务、设置
  */
 const AB = window.agentBrowser;
 
@@ -24,11 +24,8 @@ const state = {
   ifaceTested: false,
   taskQueue: [],
   sysInfo: null,
-  // Monad 交易
-  monadPrice: null,
-  monadBalance: 0,        // MON 余额
-  monadUsd: 10000,        // USD 初始余额
-  monadHistory: [],       // 交易记录
+  // 移动云增值服务
+  ecloudData: null,
   // AI 助手面板
   aiPanelMessages: [],
   aiPanelSending: false,
@@ -194,8 +191,8 @@ async function init() {
   updateClock();
   setInterval(updateClock, 1000);
 
-  // 加载 Monad 持仓
-  await loadMonadPortfolio();
+  // 加载移动云服务数据
+  await loadEcloudServices();
 
   // 窗口控制
   initWindowControls();
@@ -242,7 +239,7 @@ function switchView(view) {
   state.view = view;
   $$('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
   $$('.view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
-  if (view === 'monad') fetchMonadPrice();
+  if (view === 'ecloud') renderEcloudServices();
   if (view === 'tokens') { renderTokenManagerList(); renderInterfaceManager(); }
   if (view === 'settings') populateSettingsSysInfo();
   if (view === 'agents') {
@@ -1843,9 +1840,9 @@ async function getPageText() {
 function renderHeroStats() {
   const stats = $('#heroStats');
   const items = [
-    { num: '10+', label: '模型服务商' },
+    { num: '358+', label: '移动云模型' },
     { num: '6', label: '内置 Agent' },
-    { num: '5', label: '核心模块' },
+    { num: '6', label: '服务领域' },
     { num: '∞', label: '自定义 Agent' },
   ];
   items.forEach((it) => {
@@ -2645,114 +2642,82 @@ function updateFsClock() {
 }
 
 // ============================================================
-// Monad 交易
+// 移动云增值服务
 // ============================================================
-async function loadMonadPortfolio() {
-  const saved = await AB.dbGet('monadPortfolio');
-  if (saved) {
-    state.monadBalance = saved.monadBalance || 0;
-    state.monadUsd = saved.monadUsd || 10000;
-    state.monadHistory = saved.monadHistory || [];
+async function loadEcloudServices() {
+  state.ecloudData = await AB.ecloudServices();
+  renderEcloudServices();
+}
+
+function renderEcloudServices() {
+  const body = $('#ecloudBody');
+  if (!body) return;
+  const data = state.ecloudData;
+  if (!data) { body.innerHTML = '<div class="ecloud-empty">正在加载移动云服务数据…</div>'; return; }
+
+  // 统计栏
+  const statsBar = $('#ecloudStatsBar');
+  if (statsBar) {
+    statsBar.innerHTML = '';
+    const stats = [
+      { num: data.stats.total, label: '可用模型' },
+      { num: data.stats.providers, label: '模型服务商' },
+      { num: data.stats.families, label: '模型家族' },
+      { num: data.stats.domains, label: '服务领域' },
+    ];
+    stats.forEach((s) => {
+      const item = el('div', 'ecloud-stat-item');
+      item.appendChild(el('div', 'ecloud-stat-num', s.num));
+      item.appendChild(el('div', 'ecloud-stat-label', s.label));
+      statsBar.appendChild(item);
+    });
   }
-  renderMonadPortfolio();
-  renderMonadHistory();
-  // 自动获取一次价格
-  fetchMonadPrice();
-}
 
-function renderMonadPortfolio() {
-  $('#monadBalance').textContent = state.monadBalance.toFixed(4);
-  $('#monadUsdBalance').textContent = '$' + state.monadUsd.toFixed(2);
-  const totalVal = state.monadUsd + state.monadBalance * (state.monadPrice || 0);
-  $('#monadTotalValue').textContent = '$' + totalVal.toFixed(2);
-}
+  // 分类卡片
+  body.innerHTML = '';
+  data.categories.forEach((cat) => {
+    const section = el('div', 'ecloud-category');
+    const head = el('div', 'ecloud-cat-head');
+    const icon = el('span', 'ecloud-cat-icon', cat.icon);
+    const info = el('div', 'ecloud-cat-info');
+    info.appendChild(el('h3', '', cat.name));
+    info.appendChild(el('p', 'ecloud-cat-desc', cat.desc));
+    head.appendChild(icon);
+    head.appendChild(info);
+    section.appendChild(head);
 
-function renderMonadHistory() {
-  const list = $('#monadHistoryList');
-  list.innerHTML = '';
-  if (state.monadHistory.length === 0) {
-    list.appendChild(el('div', 'monad-empty', '暂无交易记录'));
-    return;
-  }
-  state.monadHistory.slice().reverse().forEach((h) => {
-    const item = el('div', 'monad-history-item');
-    const type = el('span', 'hist-type ' + h.type, h.type === 'buy' ? '买入' : '卖出');
-    const amount = el('span', 'hist-amount', `${h.amount.toFixed(4)} MON @ $${h.price.toFixed(4)}`);
-    const time = el('span', 'hist-time', h.time);
-    item.appendChild(type);
-    item.appendChild(amount);
-    item.appendChild(time);
-    list.appendChild(item);
+    const grid = el('div', 'ecloud-model-grid');
+    cat.models.forEach((m) => {
+      const card = el('div', 'ecloud-model-card');
+      const top = el('div', 'ecloud-model-top');
+      top.appendChild(el('div', 'ecloud-model-name', m.name));
+      const fam = el('span', 'ecloud-model-family', m.family);
+      top.appendChild(fam);
+      card.appendChild(top);
+
+      const meta = el('div', 'ecloud-model-meta');
+      if (m.ctx && m.ctx !== '—') {
+        const ctxItem = el('span', 'ecloud-meta-tag', '📋 ' + m.ctx + ' 上下文');
+        meta.appendChild(ctxItem);
+      }
+      m.features.forEach((f) => {
+        const tag = el('span', 'ecloud-meta-tag', '✦ ' + f);
+        meta.appendChild(tag);
+      });
+      card.appendChild(meta);
+
+      const price = el('div', 'ecloud-model-price');
+      const inP = el('span', '', '输入: ¥' + m.input + (m.input !== '—' ? '/' + m.unit : ''));
+      const outP = el('span', '', '输出: ¥' + m.output + (m.output !== '—' ? '/' + m.unit : ''));
+      price.appendChild(inP);
+      price.appendChild(outP);
+      card.appendChild(price);
+
+      grid.appendChild(card);
+    });
+    section.appendChild(grid);
+    body.appendChild(section);
   });
-}
-
-async function saveMonadPortfolio() {
-  await AB.dbSet('monadPortfolio', {
-    monadBalance: state.monadBalance,
-    monadUsd: state.monadUsd,
-    monadHistory: state.monadHistory,
-  });
-}
-
-async function fetchMonadPrice() {
-  const status = $('#monadPriceStatus');
-  status.textContent = '正在获取价格…';
-  const res = await AB.monadPrice();
-  if (res.ok) {
-    state.monadPrice = res.price;
-    $('#monadPrice').textContent = '$' + res.price.toFixed(4);
-    $('#monadPriceCurrency').textContent = res.currency.toUpperCase();
-    status.textContent = '✓ 价格已更新 ' + new Date().toLocaleTimeString();
-    renderMonadPortfolio();
-    updateMonadEstCost();
-  } else {
-    status.textContent = '⚠️ ' + res.error;
-  }
-}
-
-function updateMonadEstCost() {
-  const amount = parseFloat($('#monadBuyAmount').value) || 0;
-  const price = state.monadPrice || 0;
-  $('#monadEstCost').textContent = '$' + (amount * price).toFixed(2);
-}
-
-async function monadBuy() {
-  const amount = parseFloat($('#monadBuyAmount').value);
-  if (!amount || amount <= 0) { toast('请输入有效数量'); return; }
-  if (!state.monadPrice) { toast('请先刷新价格'); return; }
-  const cost = amount * state.monadPrice;
-  if (cost > state.monadUsd) { toast('USD 余额不足', 'err'); return; }
-  state.monadUsd -= cost;
-  state.monadBalance += amount;
-  state.monadHistory.push({
-    type: 'buy', amount, price: state.monadPrice,
-    time: new Date().toLocaleString(),
-  });
-  await saveMonadPortfolio();
-  renderMonadPortfolio();
-  renderMonadHistory();
-  $('#monadBuyAmount').value = '';
-  updateMonadEstCost();
-  toast(`买入 ${amount} MON 成功`, 'ok');
-}
-
-async function monadSell() {
-  const amount = parseFloat($('#monadSellAmount').value);
-  if (!amount || amount <= 0) { toast('请输入有效数量'); return; }
-  if (!state.monadPrice) { toast('请先刷新价格'); return; }
-  if (amount > state.monadBalance) { toast('MON 余额不足', 'err'); return; }
-  const revenue = amount * state.monadPrice;
-  state.monadUsd += revenue;
-  state.monadBalance -= amount;
-  state.monadHistory.push({
-    type: 'sell', amount, price: state.monadPrice,
-    time: new Date().toLocaleString(),
-  });
-  await saveMonadPortfolio();
-  renderMonadPortfolio();
-  renderMonadHistory();
-  $('#monadSellAmount').value = '';
-  toast(`卖出 ${amount} MON 成功`, 'ok');
 }
 
 // ============================================================
@@ -2821,11 +2786,10 @@ function bindEvents() {
   // 浏览器
   initBrowser();
 
-  // Monad 交易
-  $('#btnRefreshPrice').onclick = fetchMonadPrice;
-  $('#btnMonadBuy').onclick = monadBuy;
-  $('#btnMonadSell').onclick = monadSell;
-  $('#monadBuyAmount').addEventListener('input', updateMonadEstCost);
+  // 移动云增值服务
+  $('#btnEcloudLink').onclick = () => {
+    if (state.ecloudData && state.ecloudData.url) AB.openExternal(state.ecloudData.url);
+  };
 }
 
 // ============================================================

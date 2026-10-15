@@ -1073,62 +1073,64 @@ body {
 .license-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text-0); }
 .license-text { font-size: 11.5px; line-height: 1.7; color: var(--text-2); margin-bottom: 8px; }
 
-/* ---------- Monad 交易视图 ---------- */
-.monad-head {
+/* ---------- 移动云增值服务视图 ---------- */
+.ecloud-head {
   display: flex; justify-content: space-between; align-items: flex-start;
   margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
 }
-.monad-head h2 { font-size: 22px; }
-.monad-body {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+.ecloud-head h2 { font-size: 22px; }
+.ecloud-stats-bar {
+  display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
 }
-.monad-price-card {
-  grid-column: 1 / -1;
-  background: var(--panel); border: 1px solid var(--border-strong);
-  border-radius: var(--radius); padding: 28px; text-align: center;
+.ecloud-stat-item {
+  flex: 1; min-width: 120px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; text-align: center;
 }
-.monad-price-label { color: var(--text-2); font-size: 13px; letter-spacing: 1px; }
-.monad-price-value {
-  font-size: 48px; font-weight: 800; margin: 8px 0;
+.ecloud-stat-num {
+  font-size: 28px; font-weight: 800;
   background: var(--grad-text);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   font-variant-numeric: tabular-nums;
 }
-.monad-price-currency { color: var(--text-2); font-size: 14px; }
-.monad-price-status { color: var(--text-1); font-size: 13px; margin-top: 10px; }
-.monad-trade-panel, .monad-portfolio, .monad-history {
+.ecloud-stat-label { color: var(--text-2); font-size: 12px; margin-top: 4px; }
+.ecloud-body { display: flex; flex-direction: column; gap: 24px; }
+.ecloud-empty { color: var(--text-2); font-size: 14px; text-align: center; padding: 40px 0; }
+.ecloud-category {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px;
 }
-.monad-trade-panel h3, .monad-portfolio h3, .monad-history h3 {
-  font-size: 15px; color: var(--accent-2); margin-bottom: 14px;
+.ecloud-cat-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
+.ecloud-cat-icon { font-size: 28px; flex-shrink: 0; }
+.ecloud-cat-info h3 { font-size: 16px; color: var(--accent-2); margin-bottom: 4px; }
+.ecloud-cat-desc { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.ecloud-model-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
 }
-.monad-trade-row {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+.ecloud-model-card {
+  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  transition: border-color 0.2s, transform 0.2s;
 }
-.monad-trade-row label { width: 120px; color: var(--text-1); font-size: 13px; flex-shrink: 0; }
-.monad-trade-row .input { flex: 1; }
-.monad-est { color: var(--accent-2); font-weight: 600; font-size: 14px; }
-.monad-trade-panel .btn { width: 100%; margin-bottom: 8px; }
-.monad-holdings { display: flex; flex-direction: column; gap: 10px; }
-.monad-holding-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+.ecloud-model-card:hover { border-color: var(--accent-2); transform: translateY(-2px); }
+.ecloud-model-top {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px;
 }
-.monad-holding-row:last-child { border-bottom: none; }
-.monad-holding-row span { color: var(--text-1); font-size: 13px; }
-.monad-holding-row b { color: var(--text-0); font-size: 14px; font-variant-numeric: tabular-nums; }
-.monad-history-list { max-height: 240px; overflow-y: auto; }
-.monad-history-item {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
+.ecloud-model-name { font-size: 14px; font-weight: 600; color: var(--text-0); word-break: break-all; }
+.ecloud-model-family {
+  font-size: 11px; color: var(--accent-2); background: rgba(108,92,231,0.12);
+  padding: 2px 8px; border-radius: 10px; white-space: nowrap; flex-shrink: 0;
 }
-.monad-history-item .hist-type { font-weight: 600; }
-.monad-history-item .hist-type.buy { color: var(--success); }
-.monad-history-item .hist-type.sell { color: var(--danger); }
-.monad-history-item .hist-amount { color: var(--text-1); }
-.monad-history-item .hist-time { color: var(--text-2); font-size: 11px; }
-.monad-empty { color: var(--text-2); font-size: 13px; text-align: center; padding: 20px 0; }
+.ecloud-model-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ecloud-meta-tag {
+  font-size: 11px; color: var(--text-2); background: rgba(255,255,255,0.04);
+  padding: 2px 8px; border-radius: 8px;
+}
+.ecloud-model-price {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 12px; color: var(--text-1); padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
 
 /* ---------- 浮动 AI 助手按钮 ---------- */
 .ai-fab {
@@ -1287,7 +1289,6 @@ body {
 :root[data-theme="light"] .select optgroup { background: #fff; color: #1a1a2e; }
 :root[data-theme="light"] .vtab-content { background: #fff; }
 :root[data-theme="light"] .splash-bar { background: rgba(0,0,0,0.08); }
-:root[data-theme="light"] .monad-holding-row { border-bottom-color: rgba(0,0,0,0.04); }
-:root[data-theme="light"] .monad-history-item { border-bottom-color: rgba(0,0,0,0.04); }
-:root[data-theme="light"] .monad-history-item .hist-type.buy { color: #16a34a; }
-:root[data-theme="light"] .monad-history-item .hist-type.sell { color: #dc2626; }
+:root[data-theme="light"] .ecloud-model-card { border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.02); }
+:root[data-theme="light"] .ecloud-meta-tag { background: rgba(0,0,0,0.04); }
+:root[data-theme="light"] .ecloud-model-price { border-top-color: rgba(0,0,0,0.04); }
