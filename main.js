@@ -98,9 +98,8 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
-  // 调试模式：自动打开 DevTools + 启用右键菜单
+  // 调试模式：启用右键菜单（DevTools 通过 Ctrl+Shift+Alt+F12 快捷键打开）
   if (isDev) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.webContents.on('context-menu', (e, params) => {
       e.preventDefault();
       Menu.buildFromTemplate([

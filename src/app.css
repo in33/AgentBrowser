@@ -104,7 +104,7 @@ body {
   box-shadow: 0 0 40px rgba(108,92,231,0.35);
   animation: pulse 2s ease-in-out infinite;
 }
-.splash-logo svg { width: 48px; height: 48px; }
+.splash-logo img { width: 48px; height: 48px; }
 .splash-title {
   font-size: 28px; font-weight: 700; letter-spacing: 2px;
   margin-top: 8px;
@@ -146,7 +146,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   width: 28px; height: 28px;
 }
-.brand-logo svg { width: 24px; height: 24px; }
+.brand-logo img { width: 24px; height: 24px; }
 .brand-name { font-weight: 700; letter-spacing: 0.5px; font-size: 15px; }
 
 /* ---------- 横向导航（原左侧 sidenav） ---------- */
