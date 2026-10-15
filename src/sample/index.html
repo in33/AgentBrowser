@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentBrowser 示例应用</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+    }
+    .card {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 48px 56px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 {
+      font-size: 32px;
+      background: linear-gradient(135deg, #8f7bff, #00d2ff);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      margin-bottom: 12px;
+    }
+    p { color: rgba(255,255,255,0.7); margin-bottom: 24px; }
+    button {
+      padding: 12px 28px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, #6c5ce7, #00d2ff);
+      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover { transform: translateY(-2px); }
+    #counter { font-size: 48px; font-weight: 800; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>◈ AgentBrowser</h1>
+    <p>在浏览器里开发应用，实时预览</p>
+    <div id="counter">0</div>
+    <button onclick="increment()">点击 +1</button>
+  </div>
+  <script>
+    let count = 0;
+    function increment() {
+      count++;
+      document.getElementById('counter').textContent = count;
+    }
+  </script>
+</body>
+</html>

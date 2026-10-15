@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentBrowser - 未来感 AI Agent 浏览器</title>
+  <meta name="description" content="AgentBrowser - 下一代 AI Agent 浏览器：多模型网关、Agent 工作台、数据洞察、应用开发、插件生态" />
+  <style>
+    :root {
+      --bg-0: #05050d;
+      --bg-1: #0a0a18;
+      --text-0: #eef0ff;
+      --text-1: #b8bcd8;
+      --text-2: #7a7fa8;
+      --accent: #6c5ce7;
+      --accent-2: #00d2ff;
+      --accent-3: #a855f7;
+      --grad: linear-gradient(135deg, #6c5ce7, #00d2ff, #a855f7);
+      --grad-text: linear-gradient(135deg, #8f7bff, #00d2ff, #c084fc);
+      --border: rgba(120, 130, 255, 0.16);
+      --font: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      color: var(--text-0);
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(108,92,231,0.2), transparent 60%),
+        radial-gradient(900px 500px at -10% 110%, rgba(0,210,255,0.12), transparent 60%),
+        var(--bg-0);
+      overflow-x: hidden;
+    }
+    ::selection { background: rgba(108,92,231,0.4); }
+
+    /* 导航 */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(5,5,13,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+    .logo-mark {
+      font-size: 22px;
+      background: var(--grad);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a { color: var(--text-1); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+    .nav-links a:hover { color: #fff; }
+    .nav-cta {
+      padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer;
+      background: var(--grad); color: #fff; font-weight: 600; font-size: 14px;
+      box-shadow: 0 0 24px rgba(108,92,231,0.4);
+      transition: transform 0.2s, filter 0.2s;
+    }
+    .nav-cta:hover { transform: translateY(-2px); filter: brightness(1.15); }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 120px 24px 60px;
+      position: relative;
+    }
+    .hero-badge {
+      padding: 8px 20px; border-radius: 24px;
+      background: rgba(108,92,231,0.15); border: 1px solid var(--border);
+      color: var(--accent-2); font-size: 13px; letter-spacing: 1px;
+    }
+    .hero h1 {
+      font-size: clamp(40px, 7vw, 76px); font-weight: 800;
+      margin: 28px 0 20px; line-height: 1.1; letter-spacing: 1px;
+    }
+    .grad {
+      background: var(--grad-text);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero p {
+      color: var(--text-1); font-size: clamp(15px, 2vw, 19px);
+      max-width: 680px; line-height: 1.8;
+    }
+    .hero-actions { display: flex; gap: 14px; margin-top: 40px; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      padding: 13px 30px; border-radius: 10px; border: none; cursor: pointer;
+      font-size: 15px; font-weight: 600; font-family: var(--font);
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 0 30px rgba(108,92,231,0.4); }
+    .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.15); }
+    .btn-ghost { background: rgba(255,255,255,0.06); color: var(--text-0); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: rgba(120,130,255,0.4); background: rgba(255,255,255,0.1); }
+
+    .hero-stats {
+      display: flex; gap: 60px; margin-top: 70px; flex-wrap: wrap; justify-content: center;
+    }
+    .stat-num {
+      font-size: 34px; font-weight: 800;
+      background: var(--grad-text);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .stat-label { color: var(--text-2); font-size: 13px; margin-top: 6px; }
+
+    /* 通用 section */
+    section { padding: 100px 48px; max-width: 1200px; margin: 0 auto; }
+    .section-title { text-align: center; margin-bottom: 60px; }
+    .section-title h2 { font-size: clamp(28px, 4vw, 42px); font-weight: 800; }
+    .section-title p { color: var(--text-1); margin-top: 14px; font-size: 16px; }
+
+    /* 特性网格 */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+    }
+    .feature {
+      background: rgba(20,20,48,0.5);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 30px;
+      transition: all 0.25s; position: relative; overflow: hidden;
+    }
+    .feature::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--grad); opacity: 0; transition: opacity 0.25s;
+    }
+    .feature:hover { transform: translateY(-4px); border-color: rgba(120,130,255,0.4); box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+    .feature:hover::before { opacity: 1; }
+    .feature-icon { font-size: 34px; }
+    .feature h3 { margin: 16px 0 10px; font-size: 18px; }
+    .feature p { color: var(--text-1); font-size: 14px; line-height: 1.7; }
+
+    /* 对比表 */
+    .compare-wrap { overflow-x: auto; }
+    table {
+      width: 100%; border-collapse: collapse; min-width: 720px;
+      background: rgba(20,20,48,0.4);
+      border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    }
+    th, td { padding: 16px 20px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border); }
+    th { background: rgba(108,92,231,0.15); color: #fff; font-weight: 600; }
+    td { color: var(--text-1); }
+    td:first-child { color: var(--text-0); font-weight: 600; }
+    .yes { color: #22c55e; }
+    .no { color: #ef4444; }
+    .highlight-row td { background: rgba(0,210,255,0.06); }
+
+    /* 未来路线 */
+    .roadmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+    .roadmap-item {
+      background: rgba(20,20,48,0.5); border: 1px solid var(--border);
+      border-radius: 16px; padding: 26px; text-align: center;
+    }
+    .roadmap-item .phase {
+      display: inline-block; padding: 4px 14px; border-radius: 16px;
+      background: rgba(108,92,231,0.2); color: var(--accent-2); font-size: 12px; margin-bottom: 12px;
+    }
+    .roadmap-item h3 { margin-bottom: 8px; }
+    .roadmap-item p { color: var(--text-1); font-size: 13.5px; line-height: 1.7; }
+
+    /* CTA */
+    .cta {
+      text-align: center; padding: 100px 48px;
+      background: linear-gradient(135deg, rgba(108,92,231,0.15), rgba(0,210,255,0.1));
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .cta h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; }
+    .cta p { color: var(--text-1); margin: 16px 0 32px; font-size: 16px; }
+
+    footer {
+      text-align: center; padding: 40px 24px;
+      color: var(--text-2); font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent-2); text-decoration: none; }
+
+    @media (max-width: 768px) {
+      nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      section { padding: 70px 20px; }
+      .hero-stats { gap: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo"><span class="logo-mark">◈</span> AgentBrowser</div>
+    <div class="nav-links">
+      <a href="#features">特性</a>
+      <a href="#compare">对比</a>
+      <a href="#roadmap">路线图</a>
+      <a href="#download">下载</a>
+    </div>
+    <button class="nav-cta" onclick="scrollToDownload()">立即体验</button>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-badge">◈ 下一代 AI Agent 浏览器 · AgentBrowser.com</div>
+    <h1>让 <span class="grad">Agent</span> 替你<br/>浏览世界</h1>
+    <p>一个浏览器，无限可能 —— 多模型网关、Agent 工作台、数据洞察、应用开发、插件生态，重新定义人与 AI 的协作方式。</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="scrollToDownload()">免费下载</button>
+      <a href="#features" style="text-decoration:none"><button class="btn btn-ghost">了解特性</button></a>
+    </div>
+    <div class="hero-stats">
+      <div><div class="stat-num">10+</div><div class="stat-label">模型服务商</div></div>
+      <div><div class="stat-num">9</div><div class="stat-label">图表类型</div></div>
+      <div><div class="stat-num">6</div><div class="stat-label">内置 Agent</div></div>
+      <div><div class="stat-num">2</div><div class="stat-label">前沿赛道</div></div>
+    </div>
+  </header>
+
+  <!-- 特性 -->
+  <section id="features">
+    <div class="section-title">
+      <h2>不止是浏览器，是 <span class="grad">Agent 操作系统</span></h2>
+      <p>AgentBrowser 把 AI 能力深度融入浏览器的每一个角落</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">🌐</div>
+        <h3>智能浏览器</h3>
+        <p>内置 AI 侧边栏，网页即时问答、总结、翻译。Agent 可自主浏览网页、提取信息、完成任务。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🧠</div>
+        <h3>多模型网关</h3>
+        <p>统一接入 OpenAI、Claude、Gemini、DeepSeek、Kimi、GLM、通义千问、本地 Ollama 及移动云 MemS 免费接口，一个界面切换所有模型。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🤖</div>
+        <h3>Agent 工作台</h3>
+        <p>内置研究员、编程助手、内容创作、数据分析等 Agent，自动规划、执行、反思，自主完成任务。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <h3>数据洞察</h3>
+        <p>ECharts 全系图表：折线、柱状、饼图、雷达、桑基、热力、仪表盘。AI 一句话生成可视化。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💻</div>
+        <h3>应用开发</h3>
+        <p>内置代码编辑器 + 实时预览，AI 辅助编程。在浏览器里开发应用，所见即所得。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🧩</div>
+        <h3>插件生态</h3>
+        <p>可扩展的插件系统，任何人都能开发插件增强浏览器能力，构建无限可能。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎯</div>
+        <h3>社会 · 注意力与文化</h3>
+        <p>洞察注意力经济、文化传播、数字社会结构与媒体舆论，用 Agent 深度分析社会议题。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🛡️</div>
+        <h3>信任 · 身份与 AI 基建</h3>
+        <p>探索数字身份、可信 AI、数据主权与基础设施治理，构建可信智能底座。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 对比 -->
+  <section id="compare">
+    <div class="section-title">
+      <h2>与主流产品 <span class="grad">对比</span></h2>
+      <p>AgentBrowser 集各家之长，并开创性地融合了「浏览器 + 开发环境 + 数据洞察」</p>
+    </div>
+    <div class="compare-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>能力</th>
+            <th>AgentBrowser</th>
+            <th>Arc / Dia</th>
+            <th>Perplexity Comet</th>
+            <th>OpenAI Operator</th>
+            <th>Manus</th>
+            <th>Edge + Copilot</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>多模型接入</td>
+            <td class="yes">✓ 9+ 服务商</td>
+            <td class="no">✗ 单一</td>
+            <td class="no">✗ 单一</td>
+            <td class="no">✗ 单一</td>
+            <td class="no">✗ 单一</td>
+            <td class="no">✗ 单一</td>
+          </tr>
+          <tr>
+            <td>Agent 自主浏览</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="yes">✓</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>内置开发环境</td>
+            <td class="yes">✓ 编辑器+预览</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="yes">✓</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>数据可视化</td>
+            <td class="yes">✓ 9 类图表</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr>
+            <td>插件生态</td>
+            <td class="yes">✓ 开放</td>
+            <td class="yes">✓</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="yes">✓</td>
+          </tr>
+          <tr>
+            <td>本地模型 (Ollama)</td>
+            <td class="yes">✓</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+            <td class="no">✗</td>
+          </tr>
+          <tr class="highlight-row">
+            <td>开源 & 本地优先</td>
+            <td class="yes">✓ 完全开源</td>
+            <td class="no">✗ 闭源</td>
+            <td class="no">✗ 闭源</td>
+            <td class="no">✗ 闭源</td>
+            <td class="no">✗ 闭源</td>
+            <td class="no">✗ 闭源</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 路线图 -->
+  <section id="roadmap">
+    <div class="section-title">
+      <h2>未来 <span class="grad">路线图</span></h2>
+      <p>AgentBrowser 的进化方向</p>
+    </div>
+    <div class="roadmap">
+      <div class="roadmap-item">
+        <span class="phase">Phase 1 · 已实现</span>
+        <h3>多模型 + Agent</h3>
+        <p>统一模型网关、Agent 工作台、智能浏览、数据洞察、应用开发、插件系统。</p>
+      </div>
+      <div class="roadmap-item">
+        <span class="phase">Phase 2 · 规划中</span>
+        <h3>自主 Agent 浏览</h3>
+        <p>Agent 可自主点击、输入、滚动网页，像人一样完成任务，支持多任务并行。</p>
+      </div>
+      <div class="roadmap-item">
+        <span class="phase">Phase 3 · 规划中</span>
+        <h3>Agent 市场</h3>
+        <p>开放 Agent 与插件市场，社区共享，一键安装，构建繁荣生态。</p>
+      </div>
+      <div class="roadmap-item">
+        <span class="phase">Phase 4 · 愿景</span>
+        <h3>Agent 操作系统</h3>
+        <p>浏览器成为 Agent 的操作系统，连接本地应用、云端服务与万物。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta" id="download">
+    <h2>准备好体验 <span class="grad">未来</span> 了吗？</h2>
+    <p>下载 AgentBrowser，让 AI 替你浏览世界。</p>
+    <button class="btn btn-primary" onclick="alert('AgentBrowser 桌面版即将发布，敬请期待！')">下载桌面版</button>
+  </div>
+
+  <footer>
+    <p>© 2026 AgentBrowser · <a href="https://AgentBrowser.com">AgentBrowser.com</a> · 让 Agent 替你浏览世界</p>
+  </footer>
+
+  <script>
+    function scrollToDownload() {
+      document.getElementById('download').scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

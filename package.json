@@ -1,0 +1,22 @@
+{
+  "name": "agent-browser",
+  "productName": "AgentBrowser",
+  "version": "1.0.0",
+  "description": "AgentBrowser - 未来感 AI Agent 浏览器：多模型网关 + Agent 工作台 + 应用开发 + 数据洞察 + 插件生态",
+  "main": "main.js",
+  "author": "AgentBrowser Team",
+  "license": "MIT",
+  "homepage": "https://AgentBrowser.com",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "postinstall": "node scripts/vendor.mjs"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "echarts": "^5.5.1"
+  }
+}

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https: http: ws: wss:; font-src 'self' data:;" />
+  <title>AgentBrowser</title>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <!-- 启动画面 -->
+  <div id="splash" class="splash">
+    <div class="splash-inner">
+      <div class="splash-logo"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:48px;height:48px;"><circle cx="32" cy="32" r="22" stroke="#fff" stroke-width="2.5"/><ellipse cx="32" cy="32" rx="10" ry="22" stroke="#fff" stroke-width="2" opacity="0.7"/><ellipse cx="32" cy="32" rx="20" ry="22" stroke="#fff" stroke-width="1.5" opacity="0.4"/><line x1="10" y1="32" x2="54" y2="32" stroke="#fff" stroke-width="2" opacity="0.7"/><line x1="14" y1="22" x2="50" y2="22" stroke="#fff" stroke-width="1.5" opacity="0.4"/><line x1="14" y1="42" x2="50" y2="42" stroke="#fff" stroke-width="1.5" opacity="0.4"/><path d="M32 22 L34 30 L42 32 L34 34 L32 42 L30 34 L22 32 L30 30 Z" fill="#fff"/></svg></div>
+      <div class="splash-title">AgentBrowser</div>
+      <div class="splash-sub">Agent浏览器</div>
+      <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- 应用外壳 -->
+  <div id="app" class="app hidden">
+    <!-- 顶部状态栏（无边框窗口标题栏 + 横向导航） -->
+    <header class="topbar" id="topbar">
+      <div class="topbar-left">
+        <div class="brand" id="brand">
+          <span class="brand-logo"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="22" stroke="url(#bg1)" stroke-width="2.5"/><ellipse cx="32" cy="32" rx="10" ry="22" stroke="url(#bg1)" stroke-width="2" opacity="0.7"/><ellipse cx="32" cy="32" rx="20" ry="22" stroke="url(#bg1)" stroke-width="1.5" opacity="0.4"/><line x1="10" y1="32" x2="54" y2="32" stroke="url(#bg1)" stroke-width="2" opacity="0.7"/><line x1="14" y1="22" x2="50" y2="22" stroke="url(#bg1)" stroke-width="1.5" opacity="0.4"/><line x1="14" y1="42" x2="50" y2="42" stroke="url(#bg1)" stroke-width="1.5" opacity="0.4"/><path d="M32 22 L34 30 L42 32 L34 34 L32 42 L30 34 L22 32 L30 30 Z" fill="url(#bg1)"/><defs><linearGradient id="bg1" x1="0" y1="0" x2="64" y2="64"><stop stop-color="#8f7bff"/><stop offset="0.5" stop-color="#00d2ff"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs></svg></span>
+          <span class="brand-name">AgentBrowser</span>
+        </div>
+      </div>
+      <!-- 横向导航（居中，仅保留核心入口） -->
+      <nav class="topnav" id="topnav">
+        <button class="nav-btn active" data-view="home" title="主页">
+          <span class="nav-ico">🏠</span><span class="nav-txt">主页</span>
+        </button>
+        <button class="nav-btn" data-view="browser" title="浏览器">
+          <span class="nav-ico">🌐</span><span class="nav-txt">浏览器</span>
+        </button>
+        <button class="nav-btn" data-view="agents" title="Agent 工作台">
+          <span class="nav-ico">🤖</span><span class="nav-txt">Agent</span>
+        </button>
+        <button class="nav-btn" data-view="monad" title="Monad 交易">
+          <span class="nav-ico">◈</span><span class="nav-txt">Monad</span>
+        </button>
+      </nav>
+      <div class="topbar-right">
+        <!-- 竖形三点菜单 -->
+        <div class="menu-wrapper">
+          <button class="icon-btn" id="btnMenu" title="菜单">⋮</button>
+          <div class="dropdown-menu" id="dropdownMenu">
+            <a class="menu-item" id="menuGithub" href="#">
+              <span class="menu-ico">⭐</span>
+              <span>GitHub 点赞</span>
+            </a>
+            <div class="menu-sep"></div>
+            <a class="menu-item" id="menuSettings" href="#">
+              <span class="menu-ico">⚙️</span>
+              <span>设置</span>
+            </a>
+            <div class="menu-sep"></div>
+            <a class="menu-item" id="menuKeySettings" href="#">
+              <span class="menu-ico">🔑</span>
+              <span>Token 管理</span>
+            </a>
+            <div class="menu-sep"></div>
+            <a class="menu-item" id="menuAbout" href="#">
+              <span class="menu-ico">ℹ️</span>
+              <span>关于 AgentBrowser</span>
+            </a>
+          </div>
+        </div>
+        <!-- 无边框窗口控制 -->
+        <div class="win-controls">
+          <button class="win-btn" id="btnWinMin" title="最小化">─</button>
+          <button class="win-btn" id="btnWinMax" title="最大化">▢</button>
+          <button class="win-btn" id="btnFullscreen" title="全屏">⛶</button>
+          <button class="win-btn win-close" id="btnWinClose" title="关闭">✕</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 桌面：中间视图区（导航已移至顶部） -->
+    <div class="desktop">
+      <!-- 视图容器（中间桌面区域） -->
+      <main class="main" id="main">
+        <!-- 桌面首页 -->
+        <section class="view active" id="view-home">
+          <div class="desktop-wall">
+            <div class="desktop-clock" id="desktopClock">
+              <div class="clock-time">--:--</div>
+              <div class="clock-date">----年--月--日</div>
+            </div>
+            <div class="desktop-welcome">
+              <div class="hero-badge">🌐 下一代 浏览器 · AgentBrowser.com</div>
+              <h1 class="hero-title">让 <span class="grad">Agent</span> 帮您找信息</h1>
+              <p class="hero-sub">多模型网关 · 智能浏览器 · Agent 工作台 · AI 助手 · Monad 交易 —— 一个浏览器，无限可能</p>
+              <div class="hero-actions">
+                <button class="btn btn-primary" data-goto="browser">开始浏览</button>
+                <button class="btn btn-ghost" data-goto="agents">创建 Agent</button>
+                <button class="btn btn-ghost" data-goto="monad">Monad 交易</button>
+              </div>
+            </div>
+            <div class="desktop-stats" id="heroStats"></div>
+          </div>
+        </section>
+
+      <!-- 浏览器 -->
+      <section class="view" id="view-browser">
+        <div class="browser-toolbar">
+          <div class="menu-wrapper" style="display:none">
+            <button class="icon-btn" id="btnTabLayout" title="标签布局" style="display:none">⋮</button>
+            <div class="dropdown-menu" id="tabLayoutMenu">
+              <a class="menu-item" data-layout="h-text" href="#">
+                <span class="menu-ico">☰</span><span>横排标签</span>
+              </a>
+              <div class="menu-sep"></div>
+              <a class="menu-item" data-layout="v-text" href="#">
+                <span class="menu-ico">☑</span><span>竖排标签</span>
+              </a>
+              <div class="menu-sep"></div>
+              <a class="menu-item" data-layout="h-thumb" href="#">
+                <span class="menu-ico">▤</span><span>横排图文标签</span>
+              </a>
+              <div class="menu-sep"></div>
+              <a class="menu-item" data-layout="v-thumb" href="#">
+                <span class="menu-ico">▥</span><span>竖排图文标签</span>
+              </a>
+              <div class="menu-sep"></div>
+              <a class="menu-item" data-layout="h-image" href="#">
+                <span class="menu-ico">▬</span><span>横排图片标签</span>
+              </a>
+              <div class="menu-sep"></div>
+              <a class="menu-item" data-layout="v-image" href="#">
+                <span class="menu-ico">▮</span><span>竖排图片标签</span>
+              </a>
+            </div>
+          </div>
+          <button class="icon-btn" id="btnBack" title="后退">←</button>
+          <button class="icon-btn" id="btnFwd" title="前进">→</button>
+          <button class="icon-btn" id="btnReload" title="刷新">⟳</button>
+          <div class="address-wrap" style="flex:1;position:relative;">
+            <input type="text" id="addressBar" class="address-bar" placeholder="输入网址或搜索…" autocomplete="off" />
+            <div class="autocomplete-dropdown hidden" id="autocompleteDropdown"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnGo">前往</button>
+          <button class="icon-btn" id="btnNewTabToolbar" title="新建标签页">＋</button>
+          <button class="icon-btn" id="btnBookmark" title="收藏当前页">⭐</button>
+          <button class="btn btn-ghost btn-sm" id="btnAgentBrowse">🤖 Agent 浏览</button>
+          <button class="icon-btn" id="btnHistory" title="历史记录">🕘</button>
+        </div>
+        <div class="browser-body">
+          <!-- 左侧竖排标签栏 -->
+          <div class="vtab-bar" id="vtabBar">
+            <div class="vtab-list" id="vtabList"></div>
+            <button class="vtab-add" id="btnNewTab" title="新建标签页">＋</button>
+          </div>
+          <!-- 标签内容区（多 webview） -->
+          <div class="vtab-content" id="vtabContent"></div>
+          <div class="ai-sidebar hidden" id="aiSidebar">
+            <div class="sidebar-head">
+              <span>🤖 AI 助手</span>
+              <button class="icon-btn" id="btnCloseSidebar">✕</button>
+            </div>
+            <div class="sidebar-chat" id="sidebarChat"></div>
+            <div class="sidebar-input">
+              <textarea id="sidebarInput" placeholder="询问当前网页…"></textarea>
+              <div class="sidebar-model-row">
+                <span class="sidebar-model-label">🤖</span>
+                <div class="model-picker" data-target="sidebarModel"></div>
+                <select id="sidebarModel" class="select sidebar-model" style="display:none"></select>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btnSidebarSend">发送</button>
+            </div>
+          </div>
+        </div>
+        <!-- 历史记录下拉面板 -->
+        <div class="history-panel hidden" id="historyPanel">
+          <div class="history-panel-head">
+            <span>🕘 浏览历史</span>
+            <button class="btn btn-ghost btn-sm" id="btnClearHistory">清空</button>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </section>
+      <section class="view" id="view-agents">
+        <div class="agents-head">
+          <h2>Agent 工作台</h2>
+          <div class="agents-actions">
+            <button class="btn btn-primary btn-sm" id="btnNewAgent">＋ 新建</button>
+            <button class="btn btn-ghost btn-sm" id="btnClearResults">🗑 清空</button>
+          </div>
+        </div>
+        <div class="agent-chatbox">
+          <!-- 左列：Agent 列表 -->
+          <div class="agent-col-left">
+            <div class="agent-col-head">🤖 Agent 列表</div>
+            <div class="agent-list" id="agentWbList"></div>
+          </div>
+          <!-- 中列：聊天区 -->
+          <div class="agent-col-center">
+            <div class="agent-col-head">
+              <span>💬 对话</span>
+              <div class="agent-model-pick">
+                <span class="agent-model-icon">🤖</span>
+                <div class="model-picker" data-target="taskModel" style="flex:1;min-width:120px"></div>
+                <select id="taskModel" class="select task-model" style="display:none" title="选择模型"></select>
+              </div>
+            </div>
+            <div class="agent-chat-messages" id="agentChatMessages">
+              <div class="agent-empty">选择一个 Agent，输入任务开始对话 ✨</div>
+            </div>
+            <div class="agent-chat-input">
+              <textarea id="taskInput" class="agent-chat-textarea" placeholder="输入任务描述，Ctrl+Enter 发送…"></textarea>
+              <div class="agent-chat-actions">
+                <button class="btn btn-primary btn-sm" id="btnSendTask">▶ 发送</button>
+                <button class="btn btn-danger btn-sm" id="btnStopAgent" style="display:none;">■ 停止</button>
+              </div>
+            </div>
+          </div>
+          <!-- 右列：历史结果 -->
+          <div class="agent-col-right">
+            <div class="agent-col-head">
+              <span>📋 历史结果</span>
+              <span class="agent-col-count" id="agentResultCount"></span>
+            </div>
+            <div class="agent-result-panel" id="agentResultPanel">
+              <div class="agent-result-list" id="agentResultList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monad 交易 -->
+      <section class="view" id="view-monad">
+        <div class="monad-head">
+          <div>
+            <h2>◈ Monad 交易</h2>
+            <p class="track-sub">Monad 高性能 L1 区块链 · 实时行情与交易模拟</p>
+          </div>
+          <button class="btn btn-ghost" id="btnRefreshPrice">⟳ 刷新价格</button>
+        </div>
+        <div class="monad-body">
+          <div class="monad-price-card">
+            <div class="monad-price-label">MON 当前价格</div>
+            <div class="monad-price-value" id="monadPrice">--</div>
+            <div class="monad-price-currency" id="monadPriceCurrency">USD</div>
+            <div class="monad-price-status" id="monadPriceStatus">点击刷新获取最新价格</div>
+          </div>
+          <div class="monad-trade-panel">
+            <h3>模拟交易</h3>
+            <div class="monad-trade-row">
+              <label>买入数量 (MON)</label>
+              <input type="number" id="monadBuyAmount" class="input" placeholder="0.00" step="0.01" min="0" />
+            </div>
+            <div class="monad-trade-row">
+              <label>预估花费</label>
+              <span class="monad-est" id="monadEstCost">$0.00</span>
+            </div>
+            <button class="btn btn-primary" id="btnMonadBuy">买入</button>
+            <div class="monad-trade-row">
+              <label>卖出数量 (MON)</label>
+              <input type="number" id="monadSellAmount" class="input" placeholder="0.00" step="0.01" min="0" />
+            </div>
+            <button class="btn btn-ghost" id="btnMonadSell">卖出</button>
+          </div>
+          <div class="monad-portfolio">
+            <h3>我的持仓</h3>
+            <div class="monad-holdings" id="monadHoldings">
+              <div class="monad-holding-row"><span>MON 余额</span><b id="monadBalance">0.00</b></div>
+              <div class="monad-holding-row"><span>USD 余额</span><b id="monadUsdBalance">$10,000.00</b></div>
+              <div class="monad-holding-row"><span>当前市值</span><b id="monadTotalValue">$10,000.00</b></div>
+            </div>
+          </div>
+          <div class="monad-history">
+            <h3>交易记录</h3>
+            <div class="monad-history-list" id="monadHistoryList">
+              <div class="monad-empty">暂无交易记录</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 设置 -->
+      <section class="view" id="view-settings">
+        <div class="settings-wrap">
+          <h2>设置</h2>
+          <div class="settings-section">
+            <h3>外观</h3>
+            <div class="settings-row">
+              <label>主题</label>
+              <div class="theme-toggle">
+                <button class="theme-btn active" id="themeDark" title="深色主题">🌙 深色</button>
+                <button class="theme-btn" id="themeLight" title="浅色主题">☀️ 浅色</button>
+              </div>
+            </div>
+          </div>
+          <div class="settings-section">
+            <h3>关于</h3>
+            <div class="settings-row">
+              <label>应用名称</label>
+              <span class="settings-hint">AgentBrowser</span>
+            </div>
+            <div class="settings-row">
+              <label>版本</label>
+              <span class="settings-hint" id="settingsVersion">1.0.0</span>
+            </div>
+            <div class="settings-row">
+              <label>系统信息</label>
+              <span id="settingsSysInfo" class="settings-hint" style="font-size:12px;"></span>
+            </div>
+            <div class="settings-row">
+              <label>快捷键</label>
+              <span class="settings-hint">开发者工具 Ctrl+Shift+Alt+F12 · 全屏 F11</span>
+            </div>
+            <p class="settings-hint" style="margin-top:8px;">http://agentbrowser.com</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Token 管理 -->
+      <section class="view" id="view-tokens">
+        <div class="settings-wrap">
+          <div class="settings-section-head" style="margin-bottom: 20px;">
+            <h2>🔑 Token 管理</h2>
+            <button class="btn btn-primary btn-sm" id="btnOpenTokenDialog">🔑 批量管理</button>
+          </div>
+
+          <div class="settings-section">
+            <h3>默认模型配置</h3>
+            <div class="settings-row">
+              <label>服务商</label>
+              <div class="model-picker" data-target="settingsProvider" style="flex:1"></div>
+              <select id="settingsProvider" class="select" style="display:none"></select>
+            </div>
+            <div class="settings-row">
+              <label>模型</label>
+              <input type="text" id="settingsModel" class="input" placeholder="模型名称" />
+            </div>
+            <div class="settings-row">
+              <label>API Key</label>
+              <div class="input-with-toggle">
+                <input type="password" id="settingsApiKey" class="input" placeholder="sk-..." />
+                <button class="input-toggle-btn" id="btnToggleApiKey" type="button" title="显示/隐藏 Key">👁</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <label>Base URL</label>
+              <input type="text" id="settingsBaseUrl" class="input" placeholder="https://api.openai.com/v1" />
+            </div>
+            <div class="settings-row">
+              <label>系统提示词</label>
+              <textarea id="settingsSystem" class="input textarea" placeholder="可选：为模型设置系统提示词"></textarea>
+            </div>
+            <div class="settings-row">
+              <button class="btn btn-primary" id="btnSaveModel">保存模型配置</button>
+              <button class="btn btn-ghost" id="btnTestModel">测试连接</button>
+            </div>
+            <div class="settings-test" id="settingsTest"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-head">
+              <h3>接口管理</h3>
+              <button class="btn btn-primary btn-sm" id="btnAddInterface">＋ 添加自定义接口</button>
+            </div>
+            <p class="settings-hint">按分组管理接口，可隐藏/显示每个接口（默认全部显示）。隐藏的接口不会出现在下拉框中。</p>
+            <div id="interfaceManager" class="interface-manager"></div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Token 列表</h3>
+            <p class="settings-hint">按分组管理所有接口的 API Key / Token，保存在本地 SQLite 数据库中，首次安装时不带任何 Key。</p>
+            <div id="tokenManagerList" class="token-table-wrap"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 状态栏 -->
+    <footer class="statusbar">
+      <span id="statusLeft"></span>
+      <span id="statusRight"></span>
+    </footer>
+  </div>
+
+  <!-- 全屏时钟浮层 -->
+  <div class="fs-clock hidden" id="fsClock">
+    <div class="fs-clock-time" id="fsClockTime">--:--</div>
+    <div class="fs-clock-date" id="fsClockDate"></div>
+  </div>
+
+  <!-- 浮动 AI 助手按钮 -->
+  <button class="ai-fab" id="aiFab" title="AI 助手">
+    <span class="ai-fab-icon">🤖</span>
+  </button>
+
+  <!-- 竖形 AI 助手面板 -->
+  <div class="ai-panel hidden" id="aiPanel">
+    <div class="ai-panel-head">
+      <span>🤖 AI 助手</span>
+      <button class="icon-btn" id="btnCloseAiPanel">✕</button>
+    </div>
+    <div class="ai-panel-chat" id="aiPanelChat"></div>
+    <div class="ai-panel-input">
+      <div class="ai-panel-model-row">
+        <span class="ai-panel-model-label">🤖 模型</span>
+        <div class="model-picker" data-target="aiPanelModel" style="flex:1"></div>
+        <select id="aiPanelModel" class="select ai-panel-model" style="display:none" title="选择模型"></select>
+        <button class="ai-panel-model-btn" id="btnAiPanelSettings" title="模型设置">⚙</button>
+      </div>
+      <textarea id="aiPanelInput" placeholder="输入问题…"></textarea>
+      <div class="ai-panel-bottom">
+        <button class="btn btn-primary btn-sm" id="btnAiPanelSend">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模态框 -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span id="modalTitle">标题</span>
+        <button class="icon-btn" id="btnModalClose">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

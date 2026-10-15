@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentBrowser</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+}
+body {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background:
+    radial-gradient(800px 500px at 75% -5%, rgba(108,92,231,0.22), transparent 60%),
+    radial-gradient(700px 400px at -5% 105%, rgba(0,210,255,0.16), transparent 60%),
+    #05050d;
+  color: #eef0ff;
+}
+.logo-wrap {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 20px;
+  animation: fadeInUp 0.8s ease;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+.logo-icon {
+  width: 96px; height: 96px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #6c5ce7, #00d2ff);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 48px rgba(108,92,231,0.4), 0 8px 32px rgba(0,0,0,0.4);
+  animation: glow 3s ease-in-out infinite alternate;
+}
+.logo-icon svg { width: 64px; height: 64px; }
+@keyframes glow {
+  from { box-shadow: 0 0 32px rgba(108,92,231,0.3), 0 8px 32px rgba(0,0,0,0.4); }
+  to { box-shadow: 0 0 56px rgba(0,210,255,0.35), 0 8px 32px rgba(0,0,0,0.4); }
+}
+.logo-title {
+  font-size: 42px; font-weight: 700;
+  background: linear-gradient(135deg, #8f7bff, #00d2ff, #c084fc);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  letter-spacing: 1px;
+}
+.logo-subtitle {
+  font-size: 15px; color: #7a7fa8;
+  margin-top: -8px;
+}
+.footer {
+  position: absolute; bottom: 10vh; left: 0; right: 0;
+  text-align: center;
+  font-size: 15px; color: #7a7fa8;
+  margin-top: -8px;
+}
+.footer a {
+  color: #7a7fa8; text-decoration: none; cursor: pointer;
+  transition: color 0.2s;
+}
+.footer a:hover { color: #00d2ff; }
+</style>
+</head>
+<body>
+  <div class="logo-wrap">
+    <div class="logo-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="22" stroke="#fff" stroke-width="2.5"/><ellipse cx="32" cy="32" rx="10" ry="22" stroke="#fff" stroke-width="2" opacity="0.7"/><ellipse cx="32" cy="32" rx="20" ry="22" stroke="#fff" stroke-width="1.5" opacity="0.4"/><line x1="10" y1="32" x2="54" y2="32" stroke="#fff" stroke-width="2" opacity="0.7"/><line x1="14" y1="22" x2="50" y2="22" stroke="#fff" stroke-width="1.5" opacity="0.4"/><line x1="14" y1="42" x2="50" y2="42" stroke="#fff" stroke-width="1.5" opacity="0.4"/><path d="M32 22 L34 30 L42 32 L34 34 L32 42 L30 34 L22 32 L30 30 Z" fill="#fff"/></svg></div>
+    <div class="logo-title">AgentBrowser</div>
+    <div class="logo-subtitle">Agent浏览器</div>
+  </div>
+  <div class="footer"><a href="#" id="footerLink">www.agentbrowser.com</a></div>
+<script>
+  document.getElementById('footerLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (window.agentBrowser && window.agentBrowser.openExternal) {
+      window.agentBrowser.openExternal('http://www.agentbrowser.com');
+    }
+  });
+</script>
+</body>
+</html>
