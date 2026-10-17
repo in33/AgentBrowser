@@ -30,16 +30,14 @@ body {
 }
 .logo-icon {
   width: 96px; height: 96px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #6c5ce7, #00d2ff);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 48px rgba(108,92,231,0.4), 0 8px 32px rgba(0,0,0,0.4);
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.45));
   animation: glow 3s ease-in-out infinite alternate;
 }
-.logo-icon img { width: 64px; height: 64px; }
+.logo-icon img { width: 96px; height: 96px; }
 @keyframes glow {
-  from { box-shadow: 0 0 32px rgba(108,92,231,0.3), 0 8px 32px rgba(0,0,0,0.4); }
-  to { box-shadow: 0 0 56px rgba(0,210,255,0.35), 0 8px 32px rgba(0,0,0,0.4); }
+  from { filter: drop-shadow(0 8px 20px rgba(108,92,231,0.25)); }
+  to { filter: drop-shadow(0 8px 28px rgba(0,210,255,0.3)); }
 }
 .logo-title {
   font-size: 42px; font-weight: 700;
@@ -67,7 +65,7 @@ body {
 </head>
 <body>
   <div class="logo-wrap">
-    <div class="logo-icon"><img src="../assets/icon.png" alt="AgentBrowser" style="width:64px;height:64px;border-radius:16px;" /></div>
+    <div class="logo-icon"><img src="../assets/icon.png" alt="AgentBrowser" /></div>
     <div class="logo-title">AgentBrowser</div>
     <div class="logo-subtitle">Agent浏览器</div>
   </div>

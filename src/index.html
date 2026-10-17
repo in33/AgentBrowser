@@ -10,7 +10,7 @@
   <!-- 启动画面 -->
   <div id="splash" class="splash">
     <div class="splash-inner">
-      <div class="splash-logo"><img src="../assets/icon.png" alt="AgentBrowser" style="width:48px;height:48px;border-radius:12px;" /></div>
+      <div class="splash-logo"><img src="../assets/icon.png" alt="AgentBrowser" /></div>
       <div class="splash-title">AgentBrowser</div>
       <div class="splash-sub">Agent浏览器</div>
       <div class="splash-bar"><div class="splash-bar-fill"></div></div>
@@ -23,23 +23,20 @@
     <header class="topbar" id="topbar">
       <div class="topbar-left">
         <div class="brand" id="brand">
-          <span class="brand-logo"><img src="../assets/icon.png" alt="AgentBrowser" style="width:24px;height:24px;border-radius:6px;" /></span>
+          <span class="brand-logo"><img src="../assets/icon.png" alt="AgentBrowser" /></span>
           <span class="brand-name">AgentBrowser</span>
         </div>
       </div>
       <!-- 横向导航（居中，仅保留核心入口） -->
       <nav class="topnav" id="topnav">
-        <button class="nav-btn active" data-view="home" title="主页">
-          <span class="nav-ico">🏠</span><span class="nav-txt">主页</span>
+        <button class="nav-btn active" data-view="home" title="Agent 市场">
+          <span class="nav-ico">🛒</span><span class="nav-txt">Agent市场</span>
         </button>
         <button class="nav-btn" data-view="browser" title="浏览器">
           <span class="nav-ico">🌐</span><span class="nav-txt">浏览器</span>
         </button>
-        <button class="nav-btn" data-view="agents" title="Agent 工作台">
-          <span class="nav-ico">🤖</span><span class="nav-txt">Agent</span>
-        </button>
-        <button class="nav-btn" data-view="ecloud" title="移动云增值服务">
-          <span class="nav-ico">☁️</span><span class="nav-txt">移动云</span>
+        <button class="nav-btn" data-view="monad" title="Monad 市场 · 自动交易">
+          <span class="nav-ico">◈</span><span class="nav-txt">Monad</span>
         </button>
       </nav>
       <div class="topbar-right">
@@ -82,24 +79,26 @@
     <div class="desktop">
       <!-- 视图容器（中间桌面区域） -->
       <main class="main" id="main">
-        <!-- 桌面首页 -->
+        <!-- 智能体市场 -->
         <section class="view active" id="view-home">
-          <div class="desktop-wall">
-            <div class="desktop-clock" id="desktopClock">
-              <div class="clock-time">--:--</div>
-              <div class="clock-date">----年--月--日</div>
-            </div>
-            <div class="desktop-welcome">
-              <div class="hero-badge">🌐 下一代 浏览器 · AgentBrowser.com</div>
-              <h1 class="hero-title">让 <span class="grad">Agent</span> 帮您找信息</h1>
-              <p class="hero-sub">多模型网关 · 智能浏览器 · Agent 工作台 · AI 助手 · 移动云增值服务 —— 一个浏览器，无限可能</p>
-              <div class="hero-actions">
-                <button class="btn btn-primary" data-goto="browser">开始浏览</button>
-                <button class="btn btn-ghost" data-goto="agents">创建 Agent</button>
-                <button class="btn btn-ghost" data-goto="ecloud">移动云服务</button>
+          <div class="market-wrap">
+            <div class="market-head">
+              <h1 class="market-title">🛒 Agent 市场</h1>
+              <p class="market-sub">智能体入口与服务平台 —— 像搜索一样发现、收藏并使用各类智能体</p>
+              <div class="market-search">
+                <span class="market-search-ico">🔍</span>
+                <input type="text" id="marketSearch" class="market-search-input" placeholder="搜索智能体名称、描述或标签…" autocomplete="off" />
+                <button class="btn btn-ghost btn-sm" id="marketClear" title="清空">✕</button>
               </div>
+              <div class="market-filters" id="marketFilters"></div>
             </div>
-            <div class="desktop-stats" id="heroStats"></div>
+            <div class="market-stats" id="marketStats"></div>
+            <div class="market-grid" id="marketGrid"></div>
+            <div class="market-empty hidden" id="marketEmpty">
+              <div class="market-empty-ico">🔍</div>
+              <div class="market-empty-text">未找到匹配的智能体</div>
+              <div class="market-empty-hint">试试更换关键词或分类</div>
+            </div>
           </div>
         </section>
 
@@ -145,6 +144,7 @@
           <button class="icon-btn" id="btnNewTabToolbar" title="新建标签页">＋</button>
           <button class="icon-btn" id="btnBookmark" title="收藏当前页">⭐</button>
           <button class="btn btn-ghost btn-sm" id="btnAgentBrowse">🤖 Agent 浏览</button>
+          <button class="btn btn-ghost btn-sm" id="btnAutoTrade">⚡ 自动交易</button>
           <button class="icon-btn" id="btnHistory" title="历史记录">🕘</button>
         </div>
         <div class="browser-body">
@@ -171,6 +171,77 @@
               <button class="btn btn-primary btn-sm" id="btnSidebarSend">发送</button>
             </div>
           </div>
+          <!-- 自动交易侧边栏 -->
+          <div class="ai-sidebar hidden" id="autoTradeSidebar">
+            <div class="sidebar-head">
+              <span>⚡ 自动交易</span>
+              <button class="icon-btn" id="btnCloseAutoTrade">✕</button>
+            </div>
+            <div class="autotrade-body" id="autoTradeBody">
+              <div class="autotrade-price-row">
+                <span class="autotrade-price-label">MON 实时价</span>
+                <b class="autotrade-price-val" id="atPrice">$--</b>
+              </div>
+              <div class="autotrade-strat">
+                <label>策略类型</label>
+                <select id="atStrategy" class="select">
+                  <option value="grid">网格交易</option>
+                  <option value="dca">定投(DCA)</option>
+                  <option value="twap">TWAP 分单</option>
+                  <option value="momentum">动量跟踪</option>
+                  <option value="meanrev">均值回归</option>
+                </select>
+              </div>
+              <div class="autotrade-strat" id="atParamsGrid">
+                <label>价格区间下限</label>
+                <input type="number" id="atGridLow" class="input" placeholder="0.00" step="0.0001" min="0" />
+                <label>价格区间上限</label>
+                <input type="number" id="atGridHigh" class="input" placeholder="0.00" step="0.0001" min="0" />
+                <label>网格数</label>
+                <input type="number" id="atGridCount" class="input" value="10" min="2" max="100" />
+              </div>
+              <div class="autotrade-strat hidden" id="atParamsDca">
+                <label>每次买入 (MON)</label>
+                <input type="number" id="atDcaAmount" class="input" value="1" step="0.01" min="0" />
+                <label>间隔 (秒)</label>
+                <input type="number" id="atDcaInterval" class="input" value="60" min="5" />
+              </div>
+              <div class="autotrade-strat hidden" id="atParamsTwap">
+                <label>总数量 (MON)</label>
+                <input type="number" id="atTwapTotal" class="input" value="10" step="0.01" min="0" />
+                <label>分单次数</label>
+                <input type="number" id="atTwapSlices" class="input" value="5" min="2" max="100" />
+                <label>间隔 (秒)</label>
+                <input type="number" id="atTwapInterval" class="input" value="30" min="5" />
+              </div>
+              <div class="autotrade-strat hidden" id="atParamsMomentum">
+                <label>涨幅阈值 (%)</label>
+                <input type="number" id="atMomUp" class="input" value="2" step="0.1" />
+                <label>跌幅阈值 (%)</label>
+                <input type="number" id="atMomDown" class="input" value="2" step="0.1" />
+                <label>单次数量 (MON)</label>
+                <input type="number" id="atMomAmount" class="input" value="1" step="0.01" min="0" />
+              </div>
+              <div class="autotrade-strat hidden" id="atParamsMeanrev">
+                <label>均线周期</label>
+                <input type="number" id="atMrPeriod" class="input" value="20" min="3" />
+                <label>偏离阈值 (%)</label>
+                <input type="number" id="atMrDev" class="input" value="3" step="0.1" />
+                <label>单次数量 (MON)</label>
+                <input type="number" id="atMrAmount" class="input" value="1" step="0.01" min="0" />
+              </div>
+              <div class="autotrade-actions">
+                <button class="btn btn-primary btn-sm" id="btnAtStart">▶ 启动</button>
+                <button class="btn btn-danger btn-sm hidden" id="btnAtStop">■ 停止</button>
+              </div>
+              <div class="autotrade-status" id="atStatus">未启动</div>
+              <div class="autotrade-log-head">
+                <span>运行日志</span>
+                <button class="btn btn-ghost btn-sm" id="btnAtClearLog">清空</button>
+              </div>
+              <div class="autotrade-log" id="atLog"></div>
+            </div>
+          </div>
         </div>
         <!-- 历史记录下拉面板 -->
         <div class="history-panel hidden" id="historyPanel">
@@ -183,7 +254,7 @@
       </section>
       <section class="view" id="view-agents">
         <div class="agents-head">
-          <h2>Agent 工作台</h2>
+          <h2>Agent 管理台</h2>
           <div class="agents-actions">
             <button class="btn btn-primary btn-sm" id="btnNewAgent">＋ 新建</button>
             <button class="btn btn-ghost btn-sm" id="btnClearResults">🗑 清空</button>
@@ -229,18 +300,167 @@
         </div>
       </section>
 
-      <!-- 移动云增值服务 -->
-      <section class="view" id="view-ecloud">
-        <div class="ecloud-head">
+      <!-- Monad 交易 -->
+      <section class="view" id="view-monad">
+        <div class="monad-head">
           <div>
-            <h2>☁️ 移动云增值服务</h2>
-            <p class="track-sub">中国移动 ecloud.10086.cn · AI 大模型 · 多模态 · 语音 · 视频生成 · 向量检索</p>
+            <h2>◈ Monad 市场</h2>
+            <p class="track-sub">Monad 高性能 L1 区块链 · 行情、自动交易与量化策略</p>
           </div>
-          <button class="btn btn-ghost" id="btnEcloudLink">🔗 访问移动云</button>
+          <button class="btn btn-ghost" id="btnRefreshPrice">⟳ 刷新价格</button>
         </div>
-        <div class="ecloud-stats-bar" id="ecloudStatsBar"></div>
-        <div class="ecloud-body" id="ecloudBody">
-          <div class="ecloud-empty">正在加载移动云服务数据…</div>
+        <div class="monad-tabs">
+          <button class="monad-tab active" data-mtab="trade">💱 交易</button>
+          <button class="monad-tab" data-mtab="auto">⚡ 自动交易</button>
+          <button class="monad-tab" data-mtab="quant">📊 量化策略</button>
+          <button class="monad-tab" data-mtab="market">🌐 市场行情</button>
+        </div>
+        <div class="monad-body">
+          <!-- 交易面板 -->
+          <div class="monad-price-card">
+            <div class="monad-price-label">MON 当前价格</div>
+            <div class="monad-price-value" id="monadPrice">--</div>
+            <div class="monad-price-currency" id="monadPriceCurrency">USD</div>
+            <div class="monad-price-status" id="monadPriceStatus">点击刷新获取最新价格</div>
+          </div>
+          <div class="monad-trade-panel">
+            <h3>模拟交易</h3>
+            <div class="monad-trade-row">
+              <label>买入数量 (MON)</label>
+              <input type="number" id="monadBuyAmount" class="input" placeholder="0.00" step="0.01" min="0" />
+            </div>
+            <div class="monad-trade-row">
+              <label>预估花费</label>
+              <span class="monad-est" id="monadEstCost">$0.00</span>
+            </div>
+            <button class="btn btn-primary" id="btnMonadBuy">买入</button>
+            <div class="monad-trade-row">
+              <label>卖出数量 (MON)</label>
+              <input type="number" id="monadSellAmount" class="input" placeholder="0.00" step="0.01" min="0" />
+            </div>
+            <button class="btn btn-ghost" id="btnMonadSell">卖出</button>
+          </div>
+          <div class="monad-portfolio">
+            <h3>我的持仓</h3>
+            <div class="monad-holdings" id="monadHoldings">
+              <div class="monad-holding-row"><span>MON 余额</span><b id="monadBalance">0.00</b></div>
+              <div class="monad-holding-row"><span>USD 余额</span><b id="monadUsdBalance">$10,000.00</b></div>
+              <div class="monad-holding-row"><span>当前市值</span><b id="monadTotalValue">$10,000.00</b></div>
+            </div>
+          </div>
+          <div class="monad-history">
+            <h3>交易记录</h3>
+            <div class="monad-history-list" id="monadHistoryList">
+              <div class="monad-empty">暂无交易记录</div>
+            </div>
+          </div>
+        </div>
+        <!-- 自动交易面板 -->
+        <div class="monad-tab-panel" id="mtab-auto">
+          <div class="monad-auto-grid">
+            <div class="monad-panel">
+              <h3>⚡ 自动交易策略</h3>
+              <div class="monad-trade-row">
+                <label>策略类型</label>
+                <select id="mAtStrategy" class="input">
+                  <option value="grid">网格交易</option>
+                  <option value="dca">定投(DCA)</option>
+                  <option value="twap">TWAP 分单</option>
+                  <option value="momentum">动量跟踪</option>
+                  <option value="meanrev">均值回归</option>
+                </select>
+              </div>
+              <div class="monad-at-params" id="mAtParamsGrid">
+                <div class="monad-trade-row"><label>价格下限</label><input type="number" id="mAtGridLow" class="input" placeholder="0.00" step="0.0001" min="0" /></div>
+                <div class="monad-trade-row"><label>价格上限</label><input type="number" id="mAtGridHigh" class="input" placeholder="0.00" step="0.0001" min="0" /></div>
+                <div class="monad-trade-row"><label>网格数</label><input type="number" id="mAtGridCount" class="input" value="10" min="2" max="100" /></div>
+                <div class="monad-trade-row"><label>每格数量</label><input type="number" id="mAtGridQty" class="input" value="1" step="0.01" min="0" /></div>
+              </div>
+              <div class="monad-at-params hidden" id="mAtParamsDca">
+                <div class="monad-trade-row"><label>每次买入</label><input type="number" id="mAtDcaAmount" class="input" value="1" step="0.01" min="0" /></div>
+                <div class="monad-trade-row"><label>间隔(秒)</label><input type="number" id="mAtDcaInterval" class="input" value="60" min="5" /></div>
+                <div class="monad-trade-row"><label>总次数</label><input type="number" id="mAtDcaTimes" class="input" value="10" min="1" /></div>
+              </div>
+              <div class="monad-at-params hidden" id="mAtParamsTwap">
+                <div class="monad-trade-row"><label>总数量</label><input type="number" id="mAtTwapTotal" class="input" value="10" step="0.01" min="0" /></div>
+                <div class="monad-trade-row"><label>分单次数</label><input type="number" id="mAtTwapSlices" class="input" value="5" min="2" max="100" /></div>
+                <div class="monad-trade-row"><label>间隔(秒)</label><input type="number" id="mAtTwapInterval" class="input" value="30" min="5" /></div>
+              </div>
+              <div class="monad-at-params hidden" id="mAtParamsMomentum">
+                <div class="monad-trade-row"><label>涨幅阈值(%)</label><input type="number" id="mAtMomUp" class="input" value="2" step="0.1" /></div>
+                <div class="monad-trade-row"><label>跌幅阈值(%)</label><input type="number" id="mAtMomDown" class="input" value="2" step="0.1" /></div>
+                <div class="monad-trade-row"><label>单次数量</label><input type="number" id="mAtMomAmount" class="input" value="1" step="0.01" min="0" /></div>
+              </div>
+              <div class="monad-at-params hidden" id="mAtParamsMeanrev">
+                <div class="monad-trade-row"><label>均线周期</label><input type="number" id="mAtMrPeriod" class="input" value="20" min="3" /></div>
+                <div class="monad-trade-row"><label>偏离阈值(%)</label><input type="number" id="mAtMrDev" class="input" value="3" step="0.1" /></div>
+                <div class="monad-trade-row"><label>单次数量</label><input type="number" id="mAtMrAmount" class="input" value="1" step="0.01" min="0" /></div>
+              </div>
+              <div class="monad-at-actions">
+                <button class="btn btn-primary" id="btnMAtStart">▶ 启动策略</button>
+                <button class="btn btn-danger hidden" id="btnMAtStop">■ 停止</button>
+              </div>
+              <div class="monad-at-status" id="mAtStatus">策略未启动</div>
+            </div>
+            <div class="monad-panel">
+              <h3>📋 运行日志</h3>
+              <div class="monad-at-log" id="mAtLog"></div>
+              <button class="btn btn-ghost btn-sm" id="btnMAtClearLog" style="margin-top:8px;">清空日志</button>
+            </div>
+          </div>
+        </div>
+        <!-- 量化策略面板 -->
+        <div class="monad-tab-panel" id="mtab-quant">
+          <div class="quant-grid">
+            <div class="monad-panel">
+              <h3>📊 量化回测</h3>
+              <div class="monad-trade-row"><label>策略</label>
+                <select id="qStrategy" class="input">
+                  <option value="ma">双均线交叉</option>
+                  <option value="rsi">RSI 超买超卖</option>
+                  <option value="boll">布林带突破</option>
+                  <option value="macd">MACD 金叉</option>
+                </select>
+              </div>
+              <div class="monad-trade-row"><label>回测天数</label><input type="number" id="qDays" class="input" value="30" min="1" max="365" /></div>
+              <div class="monad-trade-row"><label>初始资金($)</label><input type="number" id="qCapital" class="input" value="10000" min="100" /></div>
+              <div class="monad-trade-row hidden" id="qMaRow"><label>短/长均线</label><input type="number" id="qMaShort" class="input" value="5" min="1" style="width:60px" /> / <input type="number" id="qMaLong" class="input" value="20" min="2" style="width:60px" /></div>
+              <div class="monad-trade-row hidden" id="qRsiRow"><label>RSI 区间</label><input type="number" id="qRsiLow" class="input" value="30" min="0" max="100" style="width:60px" /> / <input type="number" id="qRsiHigh" class="input" value="70" min="0" max="100" style="width:60px" /></div>
+              <div class="monad-trade-row hidden" id="qBollRow"><label>布林周期/标准差</label><input type="number" id="qBollPeriod" class="input" value="20" min="2" style="width:60px" /> / <input type="number" id="qBollStd" class="input" value="2" step="0.1" style="width:60px" /></div>
+              <div class="monad-trade-row hidden" id="qMacdRow"><label>快/慢/信号</label><input type="number" id="qMacdFast" class="input" value="12" style="width:50px" /> / <input type="number" id="qMacdSlow" class="input" value="26" style="width:50px" /> / <input type="number" id="qMacdSig" class="input" value="9" style="width:50px" /></div>
+              <button class="btn btn-primary" id="btnQBacktest">▶ 运行回测</button>
+            </div>
+            <div class="monad-panel">
+              <h3>📈 回测结果</h3>
+              <div class="quant-result" id="qResult">
+                <div class="quant-empty">运行回测后显示结果</div>
+              </div>
+            </div>
+            <div class="monad-panel">
+              <h3>💡 策略说明</h3>
+              <div class="quant-desc" id="qDesc">选择策略查看说明</div>
+            </div>
+          </div>
+        </div>
+        <!-- 市场行情面板 -->
+        <div class="monad-tab-panel" id="mtab-market">
+          <div class="market-info-grid">
+            <div class="monad-panel">
+              <h3>🌐 MON 市场概览</h3>
+              <div class="market-info-row"><span>当前价格</span><b id="mkPrice">$--</b></div>
+              <div class="market-info-row"><span>24h 涨跌</span><b id="mkChange">--</b></div>
+              <div class="market-info-row"><span>24h 最高</span><b id="mkHigh">$--</b></div>
+              <div class="market-info-row"><span>24h 最低</span><b id="mkLow">$--</b></div>
+              <div class="market-info-row"><span>24h 成交量</span><b id="mkVol">--</b></div>
+              <div class="market-info-row"><span>市值排名</span><b id="mkRank">--</b></div>
+              <button class="btn btn-ghost btn-sm" id="btnMkRefresh" style="margin-top:10px;">⟳ 刷新行情</button>
+            </div>
+            <div class="monad-panel">
+              <h3>📜 价格历史</h3>
+              <div class="price-history-chart" id="mkChart"></div>
+              <div class="market-info-row"><span>采样点</span><b id="mkSamples">0</b></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -361,11 +581,15 @@
   <!-- 竖形 AI 助手面板 -->
   <div class="ai-panel hidden" id="aiPanel">
     <div class="ai-panel-head">
-      <span>🤖 AI 助手</span>
+      <span>🤖 AI 助手 · 智能体</span>
       <button class="icon-btn" id="btnCloseAiPanel">✕</button>
     </div>
     <div class="ai-panel-chat" id="aiPanelChat"></div>
     <div class="ai-panel-input">
+      <div class="ai-panel-agent-row">
+        <span class="ai-panel-agent-label">🧩 智能体</span>
+        <select id="aiPanelAgent" class="select ai-panel-agent" title="选择智能体（自动填充其能力）"></select>
+      </div>
       <div class="ai-panel-model-row">
         <span class="ai-panel-model-label">🤖 模型</span>
         <div class="model-picker" data-target="aiPanelModel" style="flex:1"></div>

@@ -1,6 +1,6 @@
 /**
  * AgentBrowser - 渲染进程主逻辑
- * 负责：视图切换、智能浏览器、Agent 工作台、AI 助手、移动云增值服务、设置
+ * 负责：视图切换、智能浏览器、Agent 工作台、AI 助手、Monad 交易、设置
  */
 const AB = window.agentBrowser;
 
@@ -24,15 +24,23 @@ const state = {
   ifaceTested: false,
   taskQueue: [],
   sysInfo: null,
-  // 移动云增值服务
-  ecloudData: null,
+  // Monad 交易
+  monadPrice: null,
+  monadBalance: 0,        // MON 余额
+  monadUsd: 10000,        // USD 初始余额
+  monadHistory: [],       // 交易记录
   // AI 助手面板
   aiPanelMessages: [],
   aiPanelSending: false,
+  aiPanelAgentId: '',     // AI 面板选中的智能体 id（合并自 Agent 工作台）
   // 浏览历史
   browserHistory: [],
   // 收藏书签
   bookmarks: [],
+  // 智能体市场
+  marketFilter: '全部',
+  marketKeyword: '',
+  marketFavorites: [],    // 收藏的智能体 id 列表
 };
 
 // ============================================================
@@ -161,6 +169,8 @@ async function init() {
   // 默认选中第一个 Agent
   if (!state.selectedAgentId) state.selectedAgentId = state.agents[0]?.id || null;
   renderAgents();
+  // 智能体加载后刷新 AI 面板的智能体下拉
+  populateAiPanelAgentSelect();
 
   // 加载 Agent 执行结果
   state.agentResults = (await AB.storeGet('agentResults')) || [];
@@ -172,6 +182,8 @@ async function init() {
   renderBrowserHistory();
   // 加载收藏书签
   state.bookmarks = (await AB.storeGet('bookmarks')) || [];
+  // 加载市场收藏
+  state.marketFavorites = (await AB.storeGet('marketFavorites')) || [];
 
   // 系统信息
   state.sysInfo = await AB.sysInfo();
@@ -191,8 +203,8 @@ async function init() {
   updateClock();
   setInterval(updateClock, 1000);
 
-  // 加载移动云服务数据
-  await loadEcloudServices();
+  // 加载 Monad 持仓
+  await loadMonadPortfolio();
 
   // 窗口控制
   initWindowControls();
@@ -239,14 +251,10 @@ function switchView(view) {
   state.view = view;
   $$('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
   $$('.view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
-  if (view === 'ecloud') renderEcloudServices();
+  if (view === 'home') renderHeroStats();
+  if (view === 'monad') { fetchMonadPrice(); switchMonadTab('trade'); }
   if (view === 'tokens') { renderTokenManagerList(); renderInterfaceManager(); }
   if (view === 'settings') populateSettingsSysInfo();
-  if (view === 'agents') {
-    renderAgents();
-    renderAgentChatMessages();
-    renderAgentResults();
-  }
   // 进入浏览器视图时刷新所有标签缩略图（此时 webview 可见，capturePage 才有效）
   if (view === 'browser') {
     setTimeout(() => {
@@ -706,10 +714,32 @@ function addCustomInterface() {
 // ============================================================
 // Agent 工作台
 // ============================================================
+/**
+ * 智能体 SVG 图标库（替代 emoji，确保跨系统渲染一致、完整）
+ * 每个 SVG 使用 currentColor，可随容器着色。
+ */
+const AGENT_ICONS = {
+  general: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+  research: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6l-5 9a2 2 0 0 0 1.7 3h12.6a2 2 0 0 0 1.7-3l-5-9V2"/><path d="M7 2h10"/><path d="M7 14h10"/></svg>',
+  coder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg>',
+  writer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>',
+  analyst: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg>',
+  translator: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 12 17 23 22 23 6 12 11 1 6"/><line x1="12" y1="11" x2="12" y2="17"/></svg>',
+};
+
+/** 取智能体图标 HTML：优先 SVG，回退 emoji */
+function agentIconHtml(a) {
+  const key = a && a.id ? a.id.replace(/^custom-/, '') : '';
+  if (AGENT_ICONS[key]) return AGENT_ICONS[key];
+  return escapeHtml((a && a.icon) || '🤖');
+}
+
 function defaultAgents() {
   return [
     {
       id: 'general', name: '常规对话', icon: '💬',
+      supplier: 'AgentBrowser 官方',
       desc: '通用 AI 对话，无需多步骤工作流',
       system: '你是一个智能助手。请直接回答用户的问题，简洁明了。',
       tags: ['通用', '对话'],
@@ -717,36 +747,42 @@ function defaultAgents() {
     },
     {
       id: 'research', name: '深度研究员', icon: '🔬',
+      supplier: 'AgentBrowser 官方',
       desc: '自动搜索、分析、总结，产出结构化研究报告',
       system: '你是一个深度研究员。请系统地分析问题，分步骤思考，给出结构化、有依据的结论。',
       tags: ['研究', '分析'],
     },
     {
       id: 'coder', name: '编程助手', icon: '👨‍💻',
+      supplier: 'AgentBrowser 官方',
       desc: '编写、审查、优化代码，支持多种语言',
       system: '你是一个资深软件工程师。请给出高质量、可运行的代码，并解释关键逻辑。',
       tags: ['编程', '代码'],
     },
     {
       id: 'writer', name: '内容创作', icon: '✍️',
+      supplier: 'AgentBrowser 官方',
       desc: '撰写文章、文案、报告，风格多样',
       system: '你是一个专业内容创作者。请产出结构清晰、文笔优美的内容。',
       tags: ['写作', '创作'],
     },
     {
       id: 'analyst', name: '数据分析师', icon: '📈',
+      supplier: 'AgentBrowser 官方',
       desc: '解读数据、生成图表建议、洞察趋势',
       system: '你是一个数据分析师。请解读数据，给出洞察和可视化建议。',
       tags: ['数据', '洞察'],
     },
     {
       id: 'translator', name: '多语翻译', icon: '🌍',
+      supplier: 'AgentBrowser 官方',
       desc: '高质量多语言互译，保留语境与风格',
       system: '你是一个专业翻译。请准确翻译，保留原文语境与风格。',
       tags: ['翻译'],
     },
     {
       id: 'planner', name: '任务规划师', icon: '🗺️',
+      supplier: 'AgentBrowser 官方',
       desc: '把复杂目标拆解为可执行的步骤计划',
       system: '你是一个任务规划专家。请把目标拆解为清晰、可执行的步骤。',
       tags: ['规划', '效率'],
@@ -1122,6 +1158,10 @@ function openAgentEditor(agent) {
           <input type="text" id="agentName" class="input" style="width:100%;" value="${escapeHtml(a.name)}" placeholder="Agent 名称…" />
         </div>
         <div style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-1);">供应商</label>
+          <input type="text" id="agentSupplier" class="input" style="width:100%;" value="${escapeHtml(a.supplier || '')}" placeholder="如：AgentBrowser 官方 / 社区供应商…" />
+        </div>
+        <div style="margin-bottom:12px;">
           <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-1);">描述</label>
           <textarea id="agentDesc" class="input textarea" style="width:100%;min-height:60px;" placeholder="Agent 功能描述…">${escapeHtml(a.desc)}</textarea>
         </div>
@@ -1168,6 +1208,7 @@ function openAgentEditor(agent) {
       state.agents = state.agents.filter((x) => x.id !== a.id);
       await AB.storeSet('agents', state.agents);
       renderAgents();
+      populateAiPanelAgentSelect();
       toast('Agent 已删除');
       dlg.remove();
     };
@@ -1178,6 +1219,7 @@ function openAgentEditor(agent) {
     const name = $('#agentName').value.trim();
     if (!name) { toast('请填写 Agent 名称'); return; }
     const icon = customAvatarInput.value.trim() || '🤖';
+    const supplier = $('#agentSupplier').value.trim() || '社区供应商';
     const desc = $('#agentDesc').value.trim();
     const system = $('#agentSystem').value.trim();
     const tags = $('#agentTags').value.split(',').map((t) => t.trim()).filter(Boolean);
@@ -1185,17 +1227,18 @@ function openAgentEditor(agent) {
     if (isEdit) {
       const idx = state.agents.findIndex((x) => x.id === a.id);
       if (idx >= 0) {
-        state.agents[idx] = { ...state.agents[idx], name, icon, desc, system, tags };
+        state.agents[idx] = { ...state.agents[idx], name, icon, supplier, desc, system, tags };
       }
     } else {
       const newAgent = {
         id: 'custom-' + Date.now(),
-        name, icon, desc, system, tags,
+        name, icon, supplier, desc, system, tags,
       };
       state.agents.push(newAgent);
     }
     await AB.storeSet('agents', state.agents);
     renderAgents();
+    populateAiPanelAgentSelect();
     toast(isEdit ? 'Agent 已更新' : 'Agent 已创建');
     dlg.remove();
   };
@@ -1835,22 +1878,158 @@ async function getPageText() {
 }
 
 // ============================================================
-// 首页统计 & 关于
+// 智能体市场 & 关于
 // ============================================================
-function renderHeroStats() {
-  const stats = $('#heroStats');
-  const items = [
-    { num: '358+', label: '移动云模型' },
-    { num: '6', label: '内置 Agent' },
-    { num: '6', label: '服务领域' },
-    { num: '∞', label: '自定义 Agent' },
-  ];
-  items.forEach((it) => {
-    const s = el('div', 'stat');
-    s.appendChild(el('div', 'stat-num', it.num));
-    s.appendChild(el('div', 'stat-label', it.label));
-    stats.appendChild(s);
+/** 市场数据源：内置 + 用户自定义智能体 */
+function getMarketAgents() {
+  const builtin = defaultAgents();
+  const builtinIds = new Set(builtin.map((a) => a.id));
+  return [...builtin, ...state.agents.filter((a) => !builtinIds.has(a.id))];
+}
+
+/** 收集所有分类标签（含「全部」「收藏」） */
+function getMarketCategories() {
+  const set = new Set();
+  getMarketAgents().forEach((a) => (a.tags || []).forEach((t) => set.add(t)));
+  return ['全部', '收藏', ...Array.from(set)];
+}
+
+/** 渲染市场分类筛选标签 */
+function renderMarketFilters() {
+  const box = $('#marketFilters');
+  if (!box) return;
+  box.innerHTML = '';
+  getMarketCategories().forEach((cat) => {
+    const btn = el('button', 'market-filter' + (state.marketFilter === cat ? ' active' : ''), cat);
+    btn.onclick = () => {
+      state.marketFilter = cat;
+      renderMarketFilters();
+      renderMarketGrid();
+    };
+    box.appendChild(btn);
   });
+}
+
+/** 渲染市场统计 */
+function renderMarketStats() {
+  const box = $('#marketStats');
+  if (!box) return;
+  const total = getMarketAgents().length;
+  const builtin = defaultAgents().length;
+  const custom = total - builtin;
+  const items = [
+    { num: String(total), label: '智能体总数' },
+    { num: String(builtin), label: '内置' },
+    { num: String(custom), label: '自定义' },
+  ];
+  box.innerHTML = '';
+  items.forEach((it) => {
+    const s = el('div', 'market-stat');
+    s.appendChild(el('div', 'market-stat-num', it.num));
+    s.appendChild(el('div', 'market-stat-label', it.label));
+    box.appendChild(s);
+  });
+}
+
+/** 过滤后的市场智能体列表 */
+function getFilteredMarketAgents() {
+  const kw = state.marketKeyword.trim().toLowerCase();
+  return getMarketAgents().filter((a) => {
+    if (state.marketFilter === '收藏') {
+      if (!state.marketFavorites.includes(a.id)) return false;
+    } else if (state.marketFilter !== '全部' && !(a.tags || []).includes(state.marketFilter)) return false;
+    if (!kw) return true;
+    const hay = [a.name, a.desc, a.id, a.supplier || '', ...(a.tags || [])].join(' ').toLowerCase();
+    return hay.includes(kw);
+  });
+}
+
+/** 渲染市场卡片网格 */
+function renderMarketGrid() {
+  const grid = $('#marketGrid');
+  const empty = $('#marketEmpty');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const list = getFilteredMarketAgents();
+  if (list.length === 0) {
+    empty?.classList.remove('hidden');
+    return;
+  }
+  empty?.classList.add('hidden');
+  const builtinIds = new Set(defaultAgents().map((d) => d.id));
+  list.forEach((a) => {
+    const isBuiltin = builtinIds.has(a.id);
+    const fav = state.marketFavorites.includes(a.id);
+    const card = el('div', 'market-card');
+
+    const head = el('div', 'market-card-head');
+    const icon = el('div', 'market-card-icon');
+    icon.innerHTML = agentIconHtml(a);
+    const info = el('div');
+    info.appendChild(el('div', 'market-card-name', a.name));
+    info.appendChild(el('div', 'market-card-supplier', a.supplier || '社区供应商'));
+    head.appendChild(icon);
+    head.appendChild(info);
+    // 收藏按钮（右上角）
+    const favBtn = el('button', 'market-card-fav' + (fav ? ' active' : ''), fav ? '★' : '☆');
+    favBtn.title = fav ? '取消收藏' : '收藏';
+    favBtn.onclick = () => toggleMarketFavorite(a.id);
+    head.appendChild(favBtn);
+    if (isBuiltin) head.appendChild(el('div', 'market-card-badge', '内置'));
+    card.appendChild(head);
+
+    card.appendChild(el('div', 'market-card-desc', a.desc || '暂无描述'));
+
+    const tags = el('div', 'market-card-tags');
+    (a.tags || []).forEach((t) => tags.appendChild(el('span', 'market-card-tag', t)));
+    card.appendChild(tags);
+
+    const actions = el('div', 'market-card-actions');
+    const useBtn = el('button', 'btn btn-primary btn-sm', '进入');
+    useBtn.style.flex = '1';
+    useBtn.onclick = () => useMarketAgent(a.id);
+    actions.appendChild(useBtn);
+    card.appendChild(actions);
+
+    grid.appendChild(card);
+  });
+}
+
+/** 切换市场智能体收藏状态 */
+function toggleMarketFavorite(id) {
+  const idx = state.marketFavorites.indexOf(id);
+  if (idx >= 0) state.marketFavorites.splice(idx, 1);
+  else state.marketFavorites.push(id);
+  AB.storeSet('marketFavorites', state.marketFavorites);
+  renderMarketGrid();
+}
+
+/** 使用市场智能体：打开 AI 助手面板并选中该智能体（功能已合并） */
+function useMarketAgent(id) {
+  let targetId = id;
+  const exists = state.agents.some((a) => a.id === id);
+  if (!exists) {
+    // 内置但未加入工作台：复制一份到 state.agents
+    const src = defaultAgents().find((a) => a.id === id);
+    if (src) {
+      targetId = 'custom-' + Date.now();
+      state.agents.push({ ...src, id: targetId });
+      AB.storeSet('agents', state.agents);
+      populateAiPanelAgentSelect();
+    }
+  }
+  // 打开 AI 助手面板并选中智能体
+  $('#aiPanel').classList.remove('hidden');
+  $('#aiFab').classList.add('hidden');
+  selectAiPanelAgent(targetId);
+  const name = getMarketAgents().find((a) => a.id === id)?.name || '智能体';
+  toast(`已进入「${name}」`);
+}
+
+function renderHeroStats() {
+  renderMarketStats();
+  renderMarketFilters();
+  renderMarketGrid();
 }
 
 function renderAbout() {
@@ -2263,7 +2442,9 @@ function initAiPanel() {
   $('#aiPanelInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiPanelMessage(); }
   });
+  $('#aiPanelAgent').onchange = (e) => selectAiPanelAgent(e.target.value);
   populateAiPanelModelSelect();
+  populateAiPanelAgentSelect();
   populateSidebarModelSelect();
   populateTaskModelSelect();
 }
@@ -2493,6 +2674,55 @@ function populateAiPanelModelSelect() {
   if (container) buildModelPicker(container, sel, true);
 }
 
+/** 填充 AI 面板的智能体下拉（合并自 Agent 工作台） */
+function populateAiPanelAgentSelect() {
+  const sel = $('#aiPanelAgent');
+  if (!sel) return;
+  const agents = getMarketAgents();
+  const prev = state.aiPanelAgentId;
+  sel.innerHTML = '';
+  // 默认项：通用助手
+  const def = el('option', '', '通用助手（无预设）');
+  def.value = '';
+  sel.appendChild(def);
+  agents.forEach((a) => {
+    const opt = el('option', '', `${a.name} — ${a.supplier || '社区'}`);
+    opt.value = a.id;
+    sel.appendChild(opt);
+  });
+  // 保持之前选择，否则默认空
+  if (prev && agents.some((a) => a.id === prev)) {
+    sel.value = prev;
+  } else {
+    sel.value = '';
+    state.aiPanelAgentId = '';
+  }
+}
+
+/** 选择 AI 面板智能体：自动填充能力描述并应用系统提示 */
+function selectAiPanelAgent(id) {
+  state.aiPanelAgentId = id;
+  const input = $('#aiPanelInput');
+  if (!id) {
+    if (input) input.placeholder = '输入问题…';
+    return;
+  }
+  const agent = getMarketAgents().find((a) => a.id === id);
+  if (!agent) return;
+  // 自动填充：以智能体能力作为引导提示
+  if (input) {
+    input.placeholder = `已选择「${agent.name}」：${agent.desc || ''}`;
+    if (!input.value.trim()) {
+      input.value = `请以「${agent.name}」的能力帮我处理：`;
+      input.focus();
+      // 光标移到末尾，方便接续输入
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
+    }
+  }
+  toast(`已切换智能体：${agent.name}`);
+}
+
 function populateSidebarModelSelect() {
   const sel = $('#sidebarModel');
   if (!sel) return;
@@ -2513,6 +2743,7 @@ function populateTaskModelSelect() {
 function refreshAllModelSelects() {
   populateProviderSelect();
   populateAiPanelModelSelect();
+  populateAiPanelAgentSelect();
   populateSidebarModelSelect();
   populateTaskModelSelect();
 }
@@ -2584,9 +2815,17 @@ async function sendAiPanelMessage() {
     bubble.innerHTML = renderMarkdown(streamed);
     box.scrollTop = box.scrollHeight;
   });
+  // 若选中智能体，前置其系统提示词（合并自 Agent 工作台）
+  const agent = state.aiPanelAgentId
+    ? getMarketAgents().find((a) => a.id === state.aiPanelAgentId)
+    : null;
+  const baseMsgs = state.aiPanelMessages.filter((m) => m.content);
+  const sendMsgs = agent && agent.system
+    ? [{ role: 'system', content: agent.system }, ...baseMsgs]
+    : baseMsgs;
   const res = await AB.modelChatStream({
     provider: config.provider, config,
-    messages: state.aiPanelMessages.filter((m) => m.content),
+    messages: sendMsgs,
     opts: { temperature: 0.7, maxTokens: 1500 },
   });
   AB.offStreamChunk();
@@ -2599,7 +2838,7 @@ async function sendAiPanelMessage() {
     // 流式无内容，回退到非流式
     const res2 = await AB.modelChat({
       provider: config.provider, config,
-      messages: state.aiPanelMessages.filter((m) => m.content),
+      messages: sendMsgs,
       opts: { temperature: 0.7, maxTokens: 1500 },
     });
     if (res2.ok) {
@@ -2642,82 +2881,547 @@ function updateFsClock() {
 }
 
 // ============================================================
-// 移动云增值服务
+// Monad 交易
 // ============================================================
-async function loadEcloudServices() {
-  state.ecloudData = await AB.ecloudServices();
-  renderEcloudServices();
+async function loadMonadPortfolio() {
+  const saved = await AB.dbGet('monadPortfolio');
+  if (saved) {
+    state.monadBalance = saved.monadBalance || 0;
+    state.monadUsd = saved.monadUsd || 10000;
+    state.monadHistory = saved.monadHistory || [];
+  }
+  renderMonadPortfolio();
+  renderMonadHistory();
+  // 自动获取一次价格
+  fetchMonadPrice();
 }
 
-function renderEcloudServices() {
-  const body = $('#ecloudBody');
-  if (!body) return;
-  const data = state.ecloudData;
-  if (!data) { body.innerHTML = '<div class="ecloud-empty">正在加载移动云服务数据…</div>'; return; }
+function renderMonadPortfolio() {
+  $('#monadBalance').textContent = state.monadBalance.toFixed(4);
+  $('#monadUsdBalance').textContent = '$' + state.monadUsd.toFixed(2);
+  const totalVal = state.monadUsd + state.monadBalance * (state.monadPrice || 0);
+  $('#monadTotalValue').textContent = '$' + totalVal.toFixed(2);
+}
 
-  // 统计栏
-  const statsBar = $('#ecloudStatsBar');
-  if (statsBar) {
-    statsBar.innerHTML = '';
-    const stats = [
-      { num: data.stats.total, label: '可用模型' },
-      { num: data.stats.providers, label: '模型服务商' },
-      { num: data.stats.families, label: '模型家族' },
-      { num: data.stats.domains, label: '服务领域' },
-    ];
-    stats.forEach((s) => {
-      const item = el('div', 'ecloud-stat-item');
-      item.appendChild(el('div', 'ecloud-stat-num', s.num));
-      item.appendChild(el('div', 'ecloud-stat-label', s.label));
-      statsBar.appendChild(item);
-    });
+function renderMonadHistory() {
+  const list = $('#monadHistoryList');
+  list.innerHTML = '';
+  if (state.monadHistory.length === 0) {
+    list.appendChild(el('div', 'monad-empty', '暂无交易记录'));
+    return;
   }
-
-  // 分类卡片
-  body.innerHTML = '';
-  data.categories.forEach((cat) => {
-    const section = el('div', 'ecloud-category');
-    const head = el('div', 'ecloud-cat-head');
-    const icon = el('span', 'ecloud-cat-icon', cat.icon);
-    const info = el('div', 'ecloud-cat-info');
-    info.appendChild(el('h3', '', cat.name));
-    info.appendChild(el('p', 'ecloud-cat-desc', cat.desc));
-    head.appendChild(icon);
-    head.appendChild(info);
-    section.appendChild(head);
-
-    const grid = el('div', 'ecloud-model-grid');
-    cat.models.forEach((m) => {
-      const card = el('div', 'ecloud-model-card');
-      const top = el('div', 'ecloud-model-top');
-      top.appendChild(el('div', 'ecloud-model-name', m.name));
-      const fam = el('span', 'ecloud-model-family', m.family);
-      top.appendChild(fam);
-      card.appendChild(top);
-
-      const meta = el('div', 'ecloud-model-meta');
-      if (m.ctx && m.ctx !== '—') {
-        const ctxItem = el('span', 'ecloud-meta-tag', '📋 ' + m.ctx + ' 上下文');
-        meta.appendChild(ctxItem);
-      }
-      m.features.forEach((f) => {
-        const tag = el('span', 'ecloud-meta-tag', '✦ ' + f);
-        meta.appendChild(tag);
-      });
-      card.appendChild(meta);
-
-      const price = el('div', 'ecloud-model-price');
-      const inP = el('span', '', '输入: ¥' + m.input + (m.input !== '—' ? '/' + m.unit : ''));
-      const outP = el('span', '', '输出: ¥' + m.output + (m.output !== '—' ? '/' + m.unit : ''));
-      price.appendChild(inP);
-      price.appendChild(outP);
-      card.appendChild(price);
-
-      grid.appendChild(card);
-    });
-    section.appendChild(grid);
-    body.appendChild(section);
+  state.monadHistory.slice().reverse().forEach((h) => {
+    const item = el('div', 'monad-history-item');
+    const type = el('span', 'hist-type ' + h.type, h.type === 'buy' ? '买入' : '卖出');
+    const amount = el('span', 'hist-amount', `${h.amount.toFixed(4)} MON @ $${h.price.toFixed(4)}`);
+    const time = el('span', 'hist-time', h.time);
+    item.appendChild(type);
+    item.appendChild(amount);
+    item.appendChild(time);
+    list.appendChild(item);
   });
+}
+
+async function saveMonadPortfolio() {
+  await AB.dbSet('monadPortfolio', {
+    monadBalance: state.monadBalance,
+    monadUsd: state.monadUsd,
+    monadHistory: state.monadHistory,
+  });
+}
+
+async function fetchMonadPrice() {
+  const status = $('#monadPriceStatus');
+  status.textContent = '正在获取价格…';
+  const res = await AB.monadPrice();
+  if (res.ok) {
+    state.monadPrice = res.price;
+    $('#monadPrice').textContent = '$' + res.price.toFixed(4);
+    $('#monadPriceCurrency').textContent = res.currency.toUpperCase();
+    status.textContent = '✓ 价格已更新 ' + new Date().toLocaleTimeString();
+    renderMonadPortfolio();
+    updateMonadEstCost();
+  } else {
+    status.textContent = '⚠️ ' + res.error;
+  }
+}
+
+function updateMonadEstCost() {
+  const amount = parseFloat($('#monadBuyAmount').value) || 0;
+  const price = state.monadPrice || 0;
+  $('#monadEstCost').textContent = '$' + (amount * price).toFixed(2);
+}
+
+async function monadBuy() {
+  const amount = parseFloat($('#monadBuyAmount').value);
+  if (!amount || amount <= 0) { toast('请输入有效数量'); return; }
+  if (!state.monadPrice) { toast('请先刷新价格'); return; }
+  const cost = amount * state.monadPrice;
+  if (cost > state.monadUsd) { toast('USD 余额不足', 'err'); return; }
+  state.monadUsd -= cost;
+  state.monadBalance += amount;
+  state.monadHistory.push({
+    type: 'buy', amount, price: state.monadPrice,
+    time: new Date().toLocaleString(),
+  });
+  await saveMonadPortfolio();
+  renderMonadPortfolio();
+  renderMonadHistory();
+  $('#monadBuyAmount').value = '';
+  updateMonadEstCost();
+  toast(`买入 ${amount} MON 成功`, 'ok');
+}
+
+async function monadSell() {
+  const amount = parseFloat($('#monadSellAmount').value);
+  if (!amount || amount <= 0) { toast('请输入有效数量'); return; }
+  if (!state.monadPrice) { toast('请先刷新价格'); return; }
+  if (amount > state.monadBalance) { toast('MON 余额不足', 'err'); return; }
+  const revenue = amount * state.monadPrice;
+  state.monadUsd += revenue;
+  state.monadBalance -= amount;
+  state.monadHistory.push({
+    type: 'sell', amount, price: state.monadPrice,
+    time: new Date().toLocaleString(),
+  });
+  await saveMonadPortfolio();
+  renderMonadPortfolio();
+  renderMonadHistory();
+  $('#monadSellAmount').value = '';
+  toast(`卖出 ${amount} MON 成功`, 'ok');
+}
+
+// ============================================================
+// Monad 标签页切换
+// ============================================================
+function switchMonadTab(tab) {
+  $$('.monad-tab').forEach((b) => b.classList.toggle('active', b.dataset.mtab === tab));
+  $$('.monad-tab-panel').forEach((p) => p.classList.toggle('active', p.id === `mtab-${tab}`));
+  // 交易面板是 .monad-body，单独控制显隐
+  const body = $('.monad-body');
+  if (body) body.style.display = tab === 'trade' ? 'grid' : 'none';
+  if (tab === 'market') fetchMonadMarket();
+}
+
+// ============================================================
+// Monad 自动交易（共享引擎，供 Monad 视图与浏览器侧边栏复用）
+// ============================================================
+const autoTradeEngines = {}; // 多实例：key -> engine state
+
+/** 创建一个自动交易引擎实例 */
+function createAutoTradeEngine(key) {
+  if (autoTradeEngines[key]) return autoTradeEngines[key];
+  const engine = {
+    key,
+    running: false,
+    timer: null,
+    priceHistory: [],
+    lastPrice: null,
+    log: (msg, type) => appendAutoTradeLog(key, msg, type),
+    setStatus: (text, cls) => setAutoTradeStatus(key, text, cls),
+    getPrice: () => state.monadPrice || 0,
+    buy: (amount) => autoTradeExec(key, 'buy', amount),
+    sell: (amount) => autoTradeExec(key, 'sell', amount),
+  };
+  autoTradeEngines[key] = engine;
+  return engine;
+}
+
+function appendAutoTradeLog(key, msg, type = 'info') {
+  const logEl = $(key === 'monad' ? '#mAtLog' : '#atLog');
+  if (!logEl) return;
+  const line = el('div', 'log-line ' + type);
+  const time = el('span', 'log-time', new Date().toLocaleTimeString());
+  line.appendChild(time);
+  line.appendChild(document.createTextNode(msg));
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+  // 限制日志条数
+  while (logEl.children.length > 200) logEl.removeChild(logEl.firstChild);
+}
+
+function setAutoTradeStatus(key, text, cls = '') {
+  const el_ = $(key === 'monad' ? '#mAtStatus' : '#atStatus');
+  if (!el_) return;
+  el_.textContent = text;
+  el_.className = 'autotrade-status ' + (key === 'monad' ? 'monad-at-status ' : '') + cls;
+}
+
+/** 执行一笔自动交易（复用模拟账户） */
+async function autoTradeExec(key, type, amount) {
+  if (!amount || amount <= 0) return false;
+  const price = state.monadPrice;
+  if (!price) { appendAutoTradeLog(key, '⚠️ 无价格，跳过', 'info'); return false; }
+  if (type === 'buy') {
+    const cost = amount * price;
+    if (cost > state.monadUsd) { appendAutoTradeLog(key, `⚠️ USD 不足，需 $${cost.toFixed(2)}`, 'info'); return false; }
+    state.monadUsd -= cost;
+    state.monadBalance += amount;
+  } else {
+    if (amount > state.monadBalance) { appendAutoTradeLog(key, `⚠️ MON 不足，余额 ${state.monadBalance.toFixed(4)}`, 'info'); return false; }
+    state.monadUsd += amount * price;
+    state.monadBalance -= amount;
+  }
+  state.monadHistory.push({ type, amount, price, time: new Date().toLocaleString() });
+  await saveMonadPortfolio();
+  renderMonadPortfolio();
+  renderMonadHistory();
+  appendAutoTradeLog(key, `${type === 'buy' ? '买入' : '卖出'} ${amount.toFixed(4)} MON @ $${price.toFixed(4)}`, type);
+  return true;
+}
+
+/** 启动自动交易策略 */
+function startAutoTrade(key) {
+  const engine = createAutoTradeEngine(key);
+  if (engine.running) return;
+  const prefix = key === 'monad' ? '#mAt' : '#at';
+  const strategy = $(prefix + 'Strategy').value;
+  engine.running = true;
+  engine.priceHistory = [];
+  engine.lastPrice = null;
+  $(key === 'monad' ? '#btnMAtStart' : '#btnAtStart').classList.add('hidden');
+  $(key === 'monad' ? '#btnMAtStop' : '#btnAtStop').classList.remove('hidden');
+  engine.setStatus('运行中：' + strategyLabel(strategy), 'running');
+  engine.log(`▶ 启动策略：${strategyLabel(strategy)}`, 'info');
+
+  const tick = async () => {
+    if (!engine.running) return;
+    await fetchMonadPrice();
+    const price = engine.getPrice();
+    if (!price) { engine.timer = setTimeout(tick, 5000); return; }
+    engine.priceHistory.push(price);
+    if (engine.priceHistory.length > 200) engine.priceHistory.shift();
+    runStrategy(engine, strategy, price, prefix);
+    engine.timer = setTimeout(tick, 5000); // 5 秒一个 tick
+  };
+  tick();
+}
+
+function stopAutoTrade(key) {
+  const engine = autoTradeEngines[key];
+  if (!engine || !engine.running) return;
+  engine.running = false;
+  if (engine.timer) { clearTimeout(engine.timer); engine.timer = null; }
+  $(key === 'monad' ? '#btnMAtStart' : '#btnAtStart').classList.remove('hidden');
+  $(key === 'monad' ? '#btnMAtStop' : '#btnAtStop').classList.add('hidden');
+  engine.setStatus('已停止', 'stopped');
+  engine.log('■ 策略已停止', 'info');
+}
+
+function strategyLabel(s) {
+  return { grid: '网格交易', dca: '定投(DCA)', twap: 'TWAP分单', momentum: '动量跟踪', meanrev: '均值回归' }[s] || s;
+}
+
+/** 策略参数切换显示 */
+function toggleAutoTradeParams(key) {
+  const prefix = key === 'monad' ? '#mAt' : '#at';
+  const strat = $(prefix + 'Strategy').value;
+  const groups = ['Grid', 'Dca', 'Twap', 'Momentum', 'Meanrev'];
+  groups.forEach((g) => {
+    const el_ = $(prefix + 'Params' + g);
+    if (el_) el_.classList.toggle('hidden', strat !== g.toLowerCase());
+  });
+}
+
+/** 运行单个策略 tick */
+function runStrategy(engine, strategy, price, prefix) {
+  const num = (id) => parseFloat($(prefix + id)?.value) || 0;
+  switch (strategy) {
+    case 'grid': {
+      const low = num('GridLow'), high = num('GridHigh'), count = num('GridCount'), qty = num('GridQty') || 1;
+      if (!low || !high || high <= low) { engine.log('⚠️ 网格区间无效', 'info'); return; }
+      const step = (high - low) / count;
+      const gridLevel = Math.floor((price - low) / step);
+      // 价格接近下沿买入，接近上沿卖出
+      if (gridLevel <= 1 && engine.lastPrice > low) {
+        engine.buy(qty);
+      } else if (gridLevel >= count - 1) {
+        engine.sell(qty);
+      }
+      break;
+    }
+    case 'dca': {
+      const amount = num('DcaAmount') || 1;
+      const interval = (num('DcaInterval') || 60) * 1000;
+      const times = num('DcaTimes') || 10;
+      if (!engine.dcaCount) engine.dcaCount = 0;
+      const now = Date.now();
+      if (!engine.lastDcaTime || now - engine.lastDcaTime >= interval) {
+        if (engine.dcaCount < times) {
+          engine.buy(amount);
+          engine.dcaCount++;
+          engine.lastDcaTime = now;
+          if (engine.dcaCount >= times) { engine.log('✅ 定投完成', 'info'); stopAutoTrade(engine.key); }
+        }
+      }
+      break;
+    }
+    case 'twap': {
+      const total = num('TwapTotal') || 10, slices = num('TwapSlices') || 5, interval = (num('TwapInterval') || 30) * 1000;
+      const perSlice = total / slices;
+      if (!engine.twapCount) engine.twapCount = 0;
+      const now = Date.now();
+      if (!engine.lastTwapTime || now - engine.lastTwapTime >= interval) {
+        if (engine.twapCount < slices) {
+          engine.buy(perSlice);
+          engine.twapCount++;
+          engine.lastTwapTime = now;
+          if (engine.twapCount >= slices) { engine.log('✅ TWAP 完成', 'info'); stopAutoTrade(engine.key); }
+        }
+      }
+      break;
+    }
+    case 'momentum': {
+      const upTh = num('MomUp') || 2, downTh = num('MomDown') || 2, amount = num('MomAmount') || 1;
+      if (engine.lastPrice) {
+        const change = ((price - engine.lastPrice) / engine.lastPrice) * 100;
+        if (change >= upTh) engine.buy(amount);
+        else if (change <= -downTh) engine.sell(amount);
+      }
+      break;
+    }
+    case 'meanrev': {
+      const period = num('MrPeriod') || 20, dev = num('MrDev') || 3, amount = num('MrAmount') || 1;
+      if (engine.priceHistory.length >= period) {
+        const slice = engine.priceHistory.slice(-period);
+        const ma = slice.reduce((a, b) => a + b, 0) / slice.length;
+        const diff = ((price - ma) / ma) * 100;
+        if (diff <= -dev) engine.buy(amount);
+        else if (diff >= dev) engine.sell(amount);
+      }
+      break;
+    }
+  }
+  engine.lastPrice = price;
+}
+
+// ============================================================
+// Monad 量化回测
+// ============================================================
+const quantStrategyDesc = {
+  ma: '双均线交叉：短期均线上穿长期均线买入，下穿卖出。适合趋势行情。',
+  rsi: 'RSI 超买超卖：RSI 低于超卖线买入，高于超买线卖出。适合震荡行情。',
+  boll: '布林带突破：价格突破上轨买入，跌破下轨卖出。捕捉波动率扩张。',
+  macd: 'MACD 金叉：DIF 上穿 DEA（金叉）买入，下穿（死叉）卖出。趋势跟踪指标。',
+};
+
+function toggleQuantParams() {
+  const s = $('#qStrategy').value;
+  ['qMaRow', 'qRsiRow', 'qBollRow', 'qMacdRow'].forEach((r) => { const e = $('#' + r); if (e) e.classList.add('hidden'); });
+  const map = { ma: 'qMaRow', rsi: 'qRsiRow', boll: 'qBollRow', macd: 'qMacdRow' };
+  if (map[s]) { const e = $('#' + map[s]); if (e) e.classList.remove('hidden'); }
+  const desc = $('#qDesc'); if (desc) desc.textContent = quantStrategyDesc[s] || '';
+}
+
+/** 生成模拟历史价格序列（基于当前价格随机游走） */
+function genMockPrices(days, basePrice) {
+  const prices = [];
+  let p = basePrice || 0.5;
+  for (let i = 0; i < days; i++) {
+    const drift = (Math.random() - 0.48) * 0.05;
+    p = Math.max(0.01, p * (1 + drift));
+    prices.push(p);
+  }
+  return prices;
+}
+
+function sma(data, period) {
+  if (data.length < period) return null;
+  const slice = data.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / period;
+}
+
+function rsiCalc(data, period) {
+  if (data.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = data.length - period; i < data.length; i++) {
+    const diff = data[i] - data[i - 1];
+    if (diff >= 0) gains += diff; else losses -= diff;
+  }
+  const avgGain = gains / period, avgLoss = losses / period;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return 100 - 100 / (1 + rs);
+}
+
+function bollBands(data, period, stdMult) {
+  const ma = sma(data, period);
+  if (!ma) return null;
+  const slice = data.slice(-period);
+  const variance = slice.reduce((a, b) => a + (b - ma) ** 2, 0) / period;
+  const sd = Math.sqrt(variance);
+  return { mid: ma, upper: ma + sd * stdMult, lower: ma - sd * stdMult };
+}
+
+function macdCalc(data, fast, slow, signal) {
+  const ema = (data, period) => {
+    const k = 2 / (period + 1);
+    let e = data[0];
+    for (let i = 1; i < data.length; i++) e = data[i] * k + e * (1 - k);
+    return e;
+  };
+  if (data.length < slow + signal) return null;
+  const difArr = [];
+  for (let i = slow; i <= data.length; i++) {
+    const slice = data.slice(0, i);
+    difArr.push(ema(slice.slice(-fast), fast) - ema(slice.slice(-slow), slow));
+  }
+  const dif = difArr[difArr.length - 1];
+  const dea = ema(difArr, signal);
+  return { dif, dea, hist: dif - dea };
+}
+
+async function runQuantBacktest() {
+  const result = $('#qResult');
+  result.innerHTML = '<div class="quant-empty">回测运行中…</div>';
+  const days = parseInt($('#qDays').value) || 30;
+  const capital = parseFloat($('#qCapital').value) || 10000;
+  const strat = $('#qStrategy').value;
+  const price = state.monadPrice || 0.5;
+  const prices = genMockPrices(days, price);
+  let cash = capital, mon = 0, trades = 0, wins = 0;
+  const equity = [capital];
+
+  for (let i = 1; i < prices.length; i++) {
+    const p = prices[i];
+    let signal = 0;
+    if (strat === 'ma') {
+      const slice = prices.slice(0, i + 1);
+      const short = sma(slice, parseInt($('#qMaShort').value) || 5);
+      const long = sma(slice, parseInt($('#qMaLong').value) || 20);
+      if (short && long) {
+        const prevShort = sma(slice.slice(0, -1), parseInt($('#qMaShort').value) || 5);
+        const prevLong = sma(slice.slice(0, -1), parseInt($('#qMaLong').value) || 20);
+        if (prevShort <= prevLong && short > long) signal = 1;
+        else if (prevShort >= prevLong && short < long) signal = -1;
+      }
+    } else if (strat === 'rsi') {
+      const slice = prices.slice(0, i + 1);
+      const r = rsiCalc(slice, 14);
+      const low = parseFloat($('#qRsiLow').value) || 30, high = parseFloat($('#qRsiHigh').value) || 70;
+      if (r !== null) { if (r < low) signal = 1; else if (r > high) signal = -1; }
+    } else if (strat === 'boll') {
+      const slice = prices.slice(0, i + 1);
+      const period = parseInt($('#qBollPeriod').value) || 20, std = parseFloat($('#qBollStd').value) || 2;
+      const bb = bollBands(slice, period, std);
+      if (bb) { if (p < bb.lower) signal = 1; else if (p > bb.upper) signal = -1; }
+    } else if (strat === 'macd') {
+      const slice = prices.slice(0, i + 1);
+      const m = macdCalc(slice, parseInt($('#qMacdFast').value) || 12, parseInt($('#qMacdSlow').value) || 26, parseInt($('#qMacdSig').value) || 9);
+      if (m && m.hist > 0) signal = 1; else if (m && m.hist < 0) signal = -1;
+    }
+    if (signal === 1 && cash >= p) { mon += 1; cash -= p; trades++; }
+    else if (signal === -1 && mon >= 1) { const prev = cash; cash += p; mon -= 1; trades++; if (cash > prev) wins++; }
+    equity.push(cash + mon * p);
+  }
+  const finalValue = cash + mon * prices[prices.length - 1];
+  const pnl = finalValue - capital;
+  const pnlPct = (pnl / capital) * 100;
+  const winRate = trades > 0 ? (wins / trades) * 100 : 0;
+  const maxDrawdown = (() => {
+    let peak = equity[0], maxDd = 0;
+    equity.forEach((v) => { if (v > peak) peak = v; const dd = (peak - v) / peak * 100; if (dd > maxDd) maxDd = dd; });
+    return maxDd;
+  })();
+
+  result.innerHTML = '';
+  const stats = [
+    ['策略', strategyLabel(strat) || strat, ''],
+    ['回测天数', days + ' 天', ''],
+    ['初始资金', '$' + capital.toFixed(2), ''],
+    ['期末资产', '$' + finalValue.toFixed(2), ''],
+    ['总收益', (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2), pnl >= 0 ? 'pos' : 'neg'],
+    ['收益率', (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%', pnlPct >= 0 ? 'pos' : 'neg'],
+    ['交易次数', trades + ' 次', ''],
+    ['胜率', winRate.toFixed(1) + '%', ''],
+    ['最大回撤', '-' + maxDrawdown.toFixed(2) + '%', 'neg'],
+  ];
+  stats.forEach(([k, v, cls]) => {
+    const row = el('div', 'quant-stat');
+    row.appendChild(el('span', '', k));
+    const val = el('b', cls, v);
+    row.appendChild(val);
+    result.appendChild(row);
+  });
+  toast('回测完成', 'ok');
+}
+
+// ============================================================
+// Monad 市场行情
+// ============================================================
+async function fetchMonadMarket() {
+  const status = async (ok, data) => {
+    if (!ok) return;
+    const mk = (id, val, cls) => { const e = $(id); if (e) { e.textContent = val; e.className = cls || ''; } };
+    const ch = data.market_data?.price_change_percentage_24h;
+    const hi = data.market_data?.high_24h?.usd;
+    const lo = data.market_data?.low_24h?.usd;
+    const vol = data.market_data?.total_volume?.usd;
+    const rank = data.market_cap_rank;
+    mk('#mkPrice', '$' + (data.market_data?.current_price?.usd || state.monadPrice || 0).toFixed(4));
+    mk('#mkChange', (ch >= 0 ? '+' : '') + (ch ? ch.toFixed(2) : '--') + '%', ch >= 0 ? 'pos' : 'neg');
+    mk('#mkHigh', hi ? '$' + hi.toFixed(4) : '$--');
+    mk('#mkLow', lo ? '$' + lo.toFixed(4) : '$--');
+    mk('#mkVol', vol ? '$' + vol.toLocaleString() : '--');
+    mk('#mkRank', rank ? '#' + rank : '--');
+    renderPriceHistoryChart();
+  };
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/coins/monad?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false', {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    await status(true, data);
+  } catch (err) {
+    // 降级：用本地价格填充
+    const mk = (id, val) => { const e = $(id); if (e) e.textContent = val; };
+    mk('#mkPrice', '$' + (state.monadPrice || 0).toFixed(4));
+    mk('#mkChange', '--');
+    mk('#mkHigh', '$--');
+    mk('#mkLow', '$--');
+    mk('#mkVol', '--');
+    mk('#mkRank', '--');
+    renderPriceHistoryChart();
+  }
+}
+
+/** 渲染价格历史柱状图（基于交易记录） */
+function renderPriceHistoryChart() {
+  const chart = $('#mkChart');
+  if (!chart) return;
+  chart.innerHTML = '';
+  // 用最近交易记录的价格作为采样点，不足则用当前价格生成
+  let points = state.monadHistory.slice(-30).map((h) => h.price);
+  if (points.length < 5) {
+    const base = state.monadPrice || 0.5;
+    points = Array.from({ length: 20 }, (_, i) => base * (1 + (Math.random() - 0.5) * 0.1));
+  }
+  const max = Math.max(...points), min = Math.min(...points);
+  const range = max - min || 1;
+  points.forEach((p) => {
+    const bar = el('div', 'price-bar');
+    bar.style.height = ((p - min) / range * 80 + 20) + '%';
+    bar.title = '$' + p.toFixed(4);
+    chart.appendChild(bar);
+  });
+  const samples = $('#mkSamples');
+  if (samples) samples.textContent = points.length;
+}
+
+// ============================================================
+// 浏览器自动交易侧边栏
+// ============================================================
+function openAutoTradeSidebar() {
+  $('#autoTradeSidebar').classList.remove('hidden');
+  updateAutoTradePrice();
+}
+function closeAutoTradeSidebar() {
+  $('#autoTradeSidebar').classList.add('hidden');
+}
+function updateAutoTradePrice() {
+  const el_ = $('#atPrice');
+  if (el_) el_.textContent = state.monadPrice ? '$' + state.monadPrice.toFixed(4) : '$--';
 }
 
 // ============================================================
@@ -2765,6 +3469,23 @@ function bindEvents() {
   $('#themeDark').onclick = async () => { applyTheme('dark'); await AB.storeSet('theme', 'dark'); };
   $('#themeLight').onclick = async () => { applyTheme('light'); await AB.storeSet('theme', 'light'); };
 
+  // 智能体市场
+  const marketSearch = $('#marketSearch');
+  if (marketSearch) {
+    marketSearch.addEventListener('input', (e) => {
+      state.marketKeyword = e.target.value;
+      renderMarketGrid();
+    });
+  }
+  const marketClear = $('#marketClear');
+  if (marketClear) {
+    marketClear.onclick = () => {
+      state.marketKeyword = '';
+      if (marketSearch) marketSearch.value = '';
+      renderMarketGrid();
+    };
+  }
+
   // Agent
   $('#btnNewAgent').onclick = () => openAgentEditor();
   $('#btnStopAgent').onclick = () => { state.agentStop = true; };
@@ -2786,10 +3507,38 @@ function bindEvents() {
   // 浏览器
   initBrowser();
 
-  // 移动云增值服务
-  $('#btnEcloudLink').onclick = () => {
-    if (state.ecloudData && state.ecloudData.url) AB.openExternal(state.ecloudData.url);
-  };
+  // Monad 交易
+  $('#btnRefreshPrice').onclick = fetchMonadPrice;
+  $('#btnMonadBuy').onclick = monadBuy;
+  $('#btnMonadSell').onclick = monadSell;
+  $('#monadBuyAmount').addEventListener('input', updateMonadEstCost);
+
+  // Monad 标签页
+  $$('.monad-tab').forEach((b) => b.onclick = () => switchMonadTab(b.dataset.mtab));
+
+  // Monad 自动交易
+  $('#mAtStrategy').onchange = () => toggleAutoTradeParams('monad');
+  $('#btnMAtStart').onclick = () => startAutoTrade('monad');
+  $('#btnMAtStop').onclick = () => stopAutoTrade('monad');
+  $('#btnMAtClearLog').onclick = () => { const l = $('#mAtLog'); if (l) l.innerHTML = ''; };
+  toggleAutoTradeParams('monad');
+
+  // Monad 量化回测
+  $('#qStrategy').onchange = toggleQuantParams;
+  $('#btnQBacktest').onclick = runQuantBacktest;
+  toggleQuantParams();
+
+  // Monad 市场行情
+  $('#btnMkRefresh').onclick = fetchMonadMarket;
+
+  // 浏览器自动交易侧边栏
+  $('#btnAutoTrade').onclick = () => { openAutoTradeSidebar(); fetchMonadPrice(); };
+  $('#btnCloseAutoTrade').onclick = closeAutoTradeSidebar;
+  $('#atStrategy').onchange = () => toggleAutoTradeParams('browser');
+  $('#btnAtStart').onclick = () => startAutoTrade('browser');
+  $('#btnAtStop').onclick = () => stopAutoTrade('browser');
+  $('#btnAtClearLog').onclick = () => { const l = $('#atLog'); if (l) l.innerHTML = ''; };
+  toggleAutoTradeParams('browser');
 }
 
 // ============================================================
