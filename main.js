@@ -141,8 +141,11 @@ protocol.registerSchemesAsPrivileged([
 app.whenReady().then(() => {
   protocol.registerFileProtocol('agentbrowser', (request, callback) => {
     const url = request.url.replace('agentbrowser://', '');
-    if (url.startsWith('start')) {
+    if (url === 'start' || url === 'start/') {
       callback(path.join(__dirname, 'src', 'startpage.html'));
+    } else if (url.startsWith('start/assets/')) {
+      const rel = url.slice('start/'.length);
+      callback(path.join(__dirname, rel));
     } else {
       callback();
     }

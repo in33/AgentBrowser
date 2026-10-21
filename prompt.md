@@ -21,6 +21,7 @@
 | 主进程 | `main.js`（窗口、模型 API 代理、文件系统、插件、本地存储、SQLite） |
 | 预加载 | `preload.js`（contextBridge 暴露 `window.agentBrowser` / `AB`） |
 | 渲染层 | `src/index.html` + `src/app.css` + `src/app.js` |
+| 自定义协议 | `agentbrowser://start` 加载 `src/startpage.html`；启动页资源由 `main.js` 的协议处理器映射 |
 
 ### 关键架构约束
 - **`webviewTag: true` 必须开启**（浏览器视图依赖）
@@ -32,6 +33,7 @@
 - SQLite 存取通过 `db:get` / `db:set` IPC（`AB.dbGet(key)` / `AB.dbSet(key, value)`）
 - 项目文件存 `userData/projects`，插件存 `userData/plugins`
 - ECharts 通过 `scripts/vendor.mjs`（postinstall）复制到 `src/vendor`
+- `agentbrowser://start` 与 `agentbrowser://start/` 都映射到 `src/startpage.html`；协议处理器单独映射 `start/assets/` 下的资源路径，不要随意改动 URL 归一化规则
 - **DevTools 不自动打开**（dev 模式仅启用右键菜单，DevTools 通过 `Ctrl+Shift+Alt+F12` 快捷键打开）
 - **所有图标统一使用 `assets/icon.png`**（启动页、顶栏品牌、任务栏均使用同一图标）
 
@@ -40,7 +42,7 @@
 ## 三、目录结构
 
 ```
-YDY_AgentBrowser/
+AgentBrowser/
 ├── main.js              # Electron 主进程（窗口、模型代理、文件系统、SQLite）
 ├── preload.js           # 预加载（contextBridge 暴露 window.agentBrowser / AB）
 ├── package.json
